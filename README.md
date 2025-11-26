@@ -119,6 +119,7 @@ http://localhost:11434
 <img width="1919" height="912" alt="Image" src="https://github.com/user-attachments/assets/594e655e-81b3-4036-bc7b-28bc8940aee0" />
 
 ### 🧭 Company interview questions
+<img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/938434a7-60c8-409b-88d7-2c2276ba9e4a" />
 <img width="1919" height="1072" alt="Image" src="https://github.com/user-attachments/assets/a1aabd4f-e6d4-4cd5-addb-805fa35b5fb9" />
 
 ### **🛠️ Future Enhancements**
