@@ -111,8 +111,12 @@ http://localhost:11434
 <img width="1919" height="921" alt="Image" src="https://github.com/user-attachments/assets/cfb11e33-d39e-47f6-8a31-a4502165b2c8" />
 
 ### 🎤 Mock Interview Interface
+<img width="1919" height="923" alt="Image" src="https://github.com/user-attachments/assets/860f2b78-55e3-4fc1-a1ab-010243a9808f" />
+<img width="1919" height="913" alt="Image" src="https://github.com/user-attachments/assets/7be95a01-3bdb-48bb-8bce-68f60c11b232" />
 
 ### 📊 AI Feedback & Analysis
+
+<img width="1919" height="912" alt="Image" src="https://github.com/user-attachments/assets/594e655e-81b3-4036-bc7b-28bc8940aee0" />
 
 ### 🧭 Company interview questions
 <img width="1919" height="1072" alt="Image" src="https://github.com/user-attachments/assets/a1aabd4f-e6d4-4cd5-addb-805fa35b5fb9" />
