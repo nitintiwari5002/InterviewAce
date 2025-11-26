@@ -67,7 +67,7 @@ Companies can also generate custom interview questions using AI.
 
 ### **1️⃣ Clone the repo**
 ```bash
-git clone https://github.com/yourusername/InterviewAce.git
+git clone https://github.com/nitintiwari5002/InterviewAce.git
 cd InterviewAce
 ```
 
