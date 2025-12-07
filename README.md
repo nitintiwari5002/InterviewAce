@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/Mini (2).png" width="150" alt="InterviewAce Logo">
+  <img width="242" height="60" alt="Image" src="https://github.com/user-attachments/assets/c3889001-e7a3-4cdf-8758-9081e9f16f11" />
 </p>
 
 <h1 align="center">🎯 InterviewAce</h1>
@@ -27,7 +27,7 @@ Companies can also generate custom interview questions using AI.
 
 ## ⭐ Key Features
 
-### 🔹 For Students
+## 🔹 For Students
 - 🎤 **AI-powered mock interviews**
 - ✍️ Supports text, audio, and video responses
 - 🤖 Real-time AI feedback with improvement suggestions
@@ -35,12 +35,12 @@ Companies can also generate custom interview questions using AI.
 - 🎓 Career & interview-type based question generation
 - 👤 User registration and login system
 
-### 🔹 For Companies
+## 🔹 For Companies
 - 🧠 AI-based interview question generator
 - 📚 Difficulty-based filtering (Basic → Advanced)
 - 🏢 Company account system
 
-### 🔹 UI & Experience
+## 🔹 UI & Experience
 - 🎨 Smooth gradient UI with branding
 - 🧭 Multi-page navigation (Home, Features, About)
 - 🔐 Secure session handling
@@ -65,13 +65,13 @@ Companies can also generate custom interview questions using AI.
 
 ## ⚙️ Installation
 
-### **1️⃣ Clone the repo**
+## **1️⃣ Clone the repo**
 ```bash
 git clone https://github.com/nitintiwari5002/InterviewAce.git
 cd InterviewAce
 ```
 
-### **2️⃣ Install dependencies**
+## **2️⃣ Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
@@ -80,7 +80,7 @@ Or manually:
 ```bash
 pip install streamlit requests fpdf
 ```
-### **3️⃣ Install and run Ollama**
+## **3️⃣ Install and run Ollama**
 
 Download from → https://ollama.com
 
@@ -88,13 +88,13 @@ Pull a model (example):
 ```bash
 ollama pull llama2
 ```
-### **4️⃣ Run the application**
+## **4️⃣ Run the application**
 ```bash
 streamlit run app.py
 ```
 
 
-### **🌐 Environment Requirements**
+## **🌐 Environment Requirements**
 
 - Python 3.9+
 
@@ -107,31 +107,56 @@ http://localhost:11434
 
 ## 📸 Screenshots
 
-### 🏠 Home Page
-<img width="1919" height="921" alt="Image" src="https://github.com/user-attachments/assets/cfb11e33-d39e-47f6-8a31-a4502165b2c8"/>
+## 🏠 Home Page
+<img width="1917" height="919" alt="Image" src="https://github.com/user-attachments/assets/5df216c7-62a8-4db1-b9a5-5d908183eb6b" />
 
-### 🎤 Mock Interview Interface
-<img width="1919" height="923" alt="Image" src="https://github.com/user-attachments/assets/860f2b78-55e3-4fc1-a1ab-010243a9808f"/>
-<img width="1919" height="913" alt="Image" src="https://github.com/user-attachments/assets/7be95a01-3bdb-48bb-8bce-68f60c11b232"/>
+---
 
-### 📊 AI Feedback & Analysis
+<img width="1919" height="922" alt="Image" src="https://github.com/user-attachments/assets/ca7aa3ed-e9e4-4a88-947d-543472ddfccc" />
 
-<img width="1919" height="912" alt="Image" src="https://github.com/user-attachments/assets/594e655e-81b3-4036-bc7b-28bc8940aee0"/>
+---
 
-### 🧭 Company interview questions
-<img width="1919" height="1079" alt="Image" src="https://github.com/user-attachments/assets/938434a7-60c8-409b-88d7-2c2276ba9e4a"/>
-<img width="1919" height="1072" alt="Image" src="https://github.com/user-attachments/assets/a1aabd4f-e6d4-4cd5-addb-805fa35b5fb9"/>
+<img width="1919" height="910" alt="Image" src="https://github.com/user-attachments/assets/229ede00-792a-46f8-bc59-30968ec946e1" />
 
-### 📑Resume
-<img width="1799" height="907" alt="Image" src="https://github.com/user-attachments/assets/8a43d7ed-8b89-4370-b83e-e10f3aa42f82"/>
+## 🎤 Mock Interview Interface
 
-<img width="1802" height="838" alt="Image" src="https://github.com/user-attachments/assets/c71bd7de-065a-4b78-8c59-fe10976ecc39"/>
+<img width="1919" height="895" alt="Image" src="https://github.com/user-attachments/assets/4aa9cdc8-2fe2-4fa2-9f27-3958d8b4e0b2" />
 
-<img width="1835" height="864" alt="Image" src="https://github.com/user-attachments/assets/1014eb6a-d1b1-4d80-bbab-b1dd99aca421"/>
+---
 
-<img width="1456" height="923" alt="Image" src="https://github.com/user-attachments/assets/a7a0b5b3-0673-4bf8-8661-7328c098137f"/>
+<img width="1919" height="911" alt="Image" src="https://github.com/user-attachments/assets/61661623-7e52-4721-8eab-c11ca7e1aeaa" />
 
-### **🛠️ Future Enhancements**
+## 📊 AI Feedback & Analysis
+
+<img width="1896" height="845" alt="Image" src="https://github.com/user-attachments/assets/b6610708-09d3-4cc9-9f98-ce4296447d44" />
+
+## 🧭 Company interview questions
+
+<img width="1919" height="772" alt="Image" src="https://github.com/user-attachments/assets/d293c5c5-6532-4060-9327-f480ff275958" />
+
+---
+
+<img width="971" height="541" alt="Image" src="https://github.com/user-attachments/assets/71538c25-649a-47b7-ba3a-7f4d831d513d" />
+
+## 📑Resume
+
+<img width="1918" height="924" alt="Image" src="https://github.com/user-attachments/assets/4a53460e-b346-4a19-8266-3f5010f36abd" />
+
+---
+
+<img width="1813" height="836" alt="Image" src="https://github.com/user-attachments/assets/db268568-bb85-4fc5-abe9-af81c73a8320" />
+
+---
+
+<img width="1919" height="914" alt="Image" src="https://github.com/user-attachments/assets/367fb497-b89f-4c16-a4c1-8972859a6e40" />
+
+---
+
+<img width="1326" height="918" alt="Image" src="https://github.com/user-attachments/assets/d358a957-2271-4231-9ea7-f0cc77de14dd" />
+
+---
+
+## **🛠️ Future Enhancements**
 
 - Cloud-based progress tracking
 
@@ -139,7 +164,7 @@ http://localhost:11434
 
 - Global performance statistics
 
-### **🤝 Contributing**
+## **🤝 Contributing**
 
 Contributions are welcome!
 
@@ -151,7 +176,7 @@ Contributions are welcome!
 
 - Open a pull request
 
-### **📄 License**
+## **📄 License**
 
 This project is licensed under the MIT License.
 
