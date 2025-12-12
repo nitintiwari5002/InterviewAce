@@ -86,7 +86,7 @@ Download from → https://ollama.com
 
 Pull a model (example):
 ```bash
-ollama pull llama2
+ollama pull phi3:mini
 ```
 ## **4️⃣ Run the application**
 ```bash
