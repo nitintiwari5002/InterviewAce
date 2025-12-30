@@ -1,0 +1,8 @@
+ollama = phi3:mini
+streamlit
+FPDF
+pandas
+matplotlib
+base64
+xhtml12pdf
+PIL
