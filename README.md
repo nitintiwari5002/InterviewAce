@@ -106,7 +106,7 @@ http://localhost:11434
 - Stable internet connection (optional for updates)
 
 ## 🎥 Prototype Demo
-You can view the demo video here: [Recording 2026-01-04 211122.mp4.mp4](Recording 2026-01-04 211122.mp4)
+[![Watch the demo](https://img.shields.io/badge/▶️-Watch%20Video-blue)](https://github.com/nitintiwari5002/InterviewAce/raw/main/Recording%202026-01-04%20211122.mp4)
 
 ## 📸 Screenshots
 
