@@ -105,6 +105,9 @@ http://localhost:11434
 
 - Stable internet connection (optional for updates)
 
+## 🎥 Prototype Demo
+You can view the demo video here: [Recording 2026-01-04 211122.mp4.mp4](Recording 2026-01-04 211122.mp4)
+
 ## 📸 Screenshots
 
 ## 🏠 Home Page
