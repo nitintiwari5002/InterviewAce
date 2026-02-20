@@ -1,0 +1,6 @@
+streamlit
+FPDF
+pandas
+matplotlib
+xhtml2pdf
+Pillow
