@@ -142,6 +142,7 @@ st.markdown(
     """
 - Streamlit for fast, interactive UI.
 - SQLite for lightweight authentication & data.
-- Ollama (phi3:mini by default) for local AI generation and analysis.
+- Groq (gwen3 - 32B by default) for local AI generation and analysis.
 """
+
 )
