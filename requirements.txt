@@ -3,4 +3,3 @@ FPDF
 pandas
 matplotlib
 Pillow
-xhtml2pdf
