@@ -232,19 +232,34 @@ Rules:
 - No numbering
 """
 
+        # ---- SAFER PROMPT HANDLING + PARSING ----
         raw, err = prompt(question_prompt, mode="questions")
         if err:
             st.error(err)
             return
 
-        questions = [
-            q.strip()
-            for q in raw.split("\n")
-            if q.strip().endswith("?")
-        ][:5]
+        if not isinstance(raw, str) or not raw.strip():
+            st.error("Could not generate questions. Please check the AI service and try again.")
+            return
+
+        lines = [l.strip() for l in raw.split("\n") if l.strip()]
+        candidate_qs = [l for l in lines if "?" in l]
+
+        cleaned = []
+        for q in candidate_qs:
+            # Keep text up to first question mark
+            if "?" in q:
+                q = q.split("?", 1)[0] + "?"
+            # Remove simple numbering like "1. ", "Q1:", etc.
+            q = q.lstrip("Qq0123456789.:-) ").strip()
+            cleaned.append(q)
+
+        questions = cleaned[:5]
 
         if len(questions) < 5:
             st.error("Failed to generate valid questions. Retry.")
+            # Optional debug (remove in production)
+            st.write("DEBUG RAW QUESTIONS:", raw)
             return
 
         st.session_state["questions_generated"] = questions
@@ -272,7 +287,6 @@ Rules:
             else:
                 audio_flags.append(False)
 
-        # ---------- AUDIO VALIDATION (FIXED) ----------
         if st.button("Analyze Interview"):
             if not any(audio_flags):
                 st.warning("Please record at least one audio answer.")
@@ -335,10 +349,15 @@ def render_company_dashboard():
             f"Generate 5 {level} interview questions for {topic}.",
             mode="questions"
         )
-        if not err:
-            for line in q.split("\n"):
-                if line.strip():
-                    st.write("•", line)
+        if err:
+            st.error(err)
+        else:
+            if not isinstance(q, str) or not q.strip():
+                st.error("Could not generate questions. Please try again.")
+            else:
+                for line in q.split("\n"):
+                    if line.strip():
+                        st.write("•", line)
 
     if st.button("Logout"):
         reset_to_home()
@@ -355,6 +374,4 @@ elif state == "register":
 elif state == "user_dashboard":
     render_user_dashboard()
 elif state == "company_dashboard":
-
     render_company_dashboard()
-
