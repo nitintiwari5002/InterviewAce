@@ -232,7 +232,6 @@ Rules:
 - No numbering
 """
 
-        # ---- SAFER PROMPT HANDLING + PARSING ----
         raw, err = prompt(question_prompt, mode="questions")
         if err:
             st.error(err)
@@ -242,24 +241,13 @@ Rules:
             st.error("Could not generate questions. Please check the AI service and try again.")
             return
 
+        # SIMPLE PARSING: your model already returns 5 good lines
         lines = [l.strip() for l in raw.split("\n") if l.strip()]
-        candidate_qs = [l for l in lines if "?" in l]
-
-        cleaned = []
-        for q in candidate_qs:
-            # Keep text up to first question mark
-            if "?" in q:
-                q = q.split("?", 1)[0] + "?"
-            # Remove simple numbering like "1. ", "Q1:", etc.
-            q = q.lstrip("Qq0123456789.:-) ").strip()
-            cleaned.append(q)
-
-        questions = cleaned[:5]
+        questions = lines[:5]
 
         if len(questions) < 5:
             st.error("Failed to generate valid questions. Retry.")
-            # Optional debug (remove in production)
-            st.write("DEBUG RAW QUESTIONS:", raw)
+            st.write("DEBUG RAW QUESTIONS:", raw)  # you can remove later
             return
 
         st.session_state["questions_generated"] = questions
