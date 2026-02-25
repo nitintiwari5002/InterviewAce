@@ -212,7 +212,7 @@ def render_user_dashboard():
     career = st.selectbox(
         "Career Field",
         ["Software Engineering", "Data Science", "Machine Learning",
-         "Cyber Security", "Cloud Computing"]
+         "Cyber Security", "Cloud Computing", "Database Administrator", "Data Analyst", "Web Development"]
     )
 
     interview_type = st.selectbox(
@@ -355,4 +355,5 @@ elif state == "register":
 elif state == "user_dashboard":
     render_user_dashboard()
 elif state == "company_dashboard":
+
     render_company_dashboard()
