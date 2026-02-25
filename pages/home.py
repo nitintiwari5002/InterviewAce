@@ -325,7 +325,7 @@ def render_company_dashboard():
 
     topic = st.selectbox(
         "Topic",
-        ["Python", "System Design", "Data Science", "Cloud Computing"]
+        ["Python", "System Design", "Data Science", "Cloud Computing", "Database Administrator", "Data Analyst", "Web Development"]
     )
 
     level = st.radio("Difficulty", ["Basic", "Intermediate", "Advanced"], horizontal=True)
@@ -357,3 +357,4 @@ elif state == "user_dashboard":
 elif state == "company_dashboard":
 
     render_company_dashboard()
+
