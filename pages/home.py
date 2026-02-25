@@ -204,7 +204,7 @@ def render_user_dashboard():
     st.header("🎤 Audio-Only Mock Interview")
 
     # SINGLE CAMERA (OPTIONAL)
-    st.subheader("Camera Preview (Optional)")
+    st.subheader("Camera Preview")
     cam = st.camera_input("Camera Preview", key="single_camera")
     if cam:
         st.video(cam)
@@ -363,3 +363,4 @@ elif state == "user_dashboard":
     render_user_dashboard()
 elif state == "company_dashboard":
     render_company_dashboard()
+
