@@ -65,7 +65,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Logo ---
-st.image("assets/Mini (2).png", width=250)
+left, center, right = st.columns([2, 2, 1])
+with center:
+    st.image("assets/Mini (2).png", width=250)
 
 # --- Features Section ---
 st.markdown("<h1 style='text-align:center; margin-top:20px;'>Everything You Need to Succeed</h1>", unsafe_allow_html=True)
