@@ -30,18 +30,15 @@ SESSION_DEFAULTS = {
     "company_qa_pairs": None,  # for company dashboard Q/A
 }
 
-
 def init_session():
     for key, value in SESSION_DEFAULTS.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-
 def reset_to_home():
     for key, value in SESSION_DEFAULTS.items():
         st.session_state[key] = value
     st.rerun()
-
 
 init_session()
 
@@ -58,7 +55,6 @@ def img_to_data_url(path: str) -> str:
     else:
         mime = "image/png"
     return f"data:{mime};base64,{b64}"
-
 
 # PDF GENERATION
 def _sanitize_for_pdf(text: str) -> str:
@@ -78,7 +74,6 @@ def _sanitize_for_pdf(text: str) -> str:
             cleaned.append("?")
     return "".join(cleaned)
 
-
 def create_interview_pdf(transcript_text: str) -> bytes:
     pdf = FPDF()
     pdf.add_page()
@@ -92,7 +87,6 @@ def create_interview_pdf(transcript_text: str) -> bytes:
 
     pdf_bytes = pdf.output(dest="S").encode("latin-1", "ignore")
     return pdf_bytes
-
 
 # SIMPLE SCORING FROM ANALYSIS
 def compute_score_from_analysis(analysis: str) -> int:
@@ -123,7 +117,6 @@ def compute_score_from_analysis(analysis: str) -> int:
     score = max(0, min(100, score))
     return score
 
-
 def get_score_breakdown(analysis: str) -> dict:
     text = analysis.lower()
     categories = {
@@ -147,7 +140,6 @@ def get_score_breakdown(analysis: str) -> dict:
             categories[k] = 40
 
     return categories
-
 
 # STYLES AND NAVBAR
 st.markdown("""
@@ -178,7 +170,6 @@ st.markdown("""
 left, center, right = st.columns([2, 2, 1])
 with center:
     st.image("assets/Mini (2).png", width=250)
-
 
 # SCREENS
 def render_welcome():
@@ -338,7 +329,6 @@ if (!window.__heroCarouselV3) {{
                 st.session_state["navbar_state"] = "register"
                 st.rerun()
 
-
 def render_login():
     role = st.radio("Login as:", ["User", "Company"], horizontal=True)
     st.session_state["role"] = role
@@ -365,7 +355,6 @@ def render_login():
     if st.button("Back"):
         reset_to_home()
 
-
 def render_register():
     role = st.radio("Register as:", ["User", "Company"], horizontal=True)
 
@@ -387,7 +376,6 @@ def render_register():
     if st.button("Back"):
         reset_to_home()
 
-
 # DASHBOARD[USER]
 def render_user_dashboard():
     st.header("🎤 Audio-Only Mock Interview")
@@ -395,7 +383,8 @@ def render_user_dashboard():
     st.subheader("Camera Preview")
     cam = st.camera_input("Camera Preview", key="single_camera")
     if cam:
-        st.video(cam)
+        # st.camera_input returns an UploadedFile-like object; display as image instead of video
+        st.image(cam)
 
     career = st.selectbox(
         "Career Field",
@@ -422,22 +411,37 @@ def render_user_dashboard():
         ["Basic", "Intermediate", "Advanced"]
     )
 
+    # NEW: extra inputs for user
+    job_role = st.text_input(
+        "Target role / position (optional)",
+        placeholder="e.g., Backend Engineer at fintech startup"
+    )
+    custom_focus = st.text_area(
+        "Custom focus (optional)",
+        placeholder="e.g., Focus more on system design, REST APIs, and database transactions."
+    )
+    num_q = st.slider("Number of questions", 3, 10, 5)
+
     # Generate questions + expected answers
-    if st.button("Start Interview"):
+    if st.button("Start Interview", key="btn_start_interview"):
         question_prompt = f"""
 You are an experienced interviewer for {career} candidates.
 
-Generate exactly 5 {interview_type} interview questions for a {career} candidate.
+Generate exactly {num_q} {interview_type} interview questions for a candidate.
+
+Target role/position (if provided): {job_role or "Not specified"}
 
 Difficulty: {difficulty}
 - If difficulty is Basic, focus on fundamentals and simple, direct questions.
 - If difficulty is Intermediate, focus on applied concepts and moderate depth.
 - If difficulty is Advanced, focus on complex, scenario-based and deep questions.
 
+Additional focus (if provided): {custom_focus or "None"}
+
 For each question:
 - Write the question on one line starting with "Q:".
 - On the next line, write a short expected answer (1–3 sentences) starting with "Expected answer:".
-- Make sure the question and expected answer match the specified difficulty.
+- Make sure the question and expected answer match the specified difficulty and interview type.
 - Do not add numbering or bullets.
 - Do not add any extra text before or after the Q/A pairs.
 
@@ -445,7 +449,7 @@ Example format:
 Q: Tell me about yourself.
 Expected answer: The candidate gives a concise summary of their background, skills, and goals.
 
-Now generate 5 such Q/A pairs.
+Now generate {num_q} such Q/A pairs.
 """
 
         raw, err = prompt(question_prompt, mode="questions")
@@ -471,12 +475,17 @@ Now generate 5 such Q/A pairs.
                 qa_pairs.append({"question": q, "expected_answer": exp})
             i += 1
 
-        qa_pairs = qa_pairs[:5]
+        qa_pairs = qa_pairs[:num_q]
 
-        if len(qa_pairs) < 5:
+        if len(qa_pairs) < num_q:
             st.error("Failed to generate valid questions. Retry.")
             st.write("DEBUG RAW QUESTIONS:", raw)
             return
+
+        # store questions and placeholder for audio/transcripts
+        for pair in qa_pairs:
+            pair["audio_bytes"] = None
+            pair["transcript"] = None  # placeholder if you later add ASR
 
         st.session_state["qa_pairs"] = qa_pairs
         st.session_state["questions_generated"] = [p["question"] for p in qa_pairs]
@@ -505,6 +514,9 @@ Now generate 5 such Q/A pairs.
             transcript_lines.append(f"Expected answer: {exp}")
 
             if audio:
+                # st.audio_input returns an UploadedFile (file-like object) [web:11]
+                audio_bytes = audio.read()
+                pair["audio_bytes"] = audio_bytes
                 st.audio(audio)
                 transcript_lines.append("Candidate answer: [audio recorded]")
                 audio_flags.append(True)
@@ -513,23 +525,36 @@ Now generate 5 such Q/A pairs.
                 audio_flags.append(False)
 
         # ---- Analyze interview ----
-        if st.button("Analyze Interview"):
+        if st.button("Analyze Interview", key="btn_analyze"):
             if not any(audio_flags):
                 st.warning("Please record at least one audio answer.")
                 return
 
-            analysis_prompt = """
+            # Build a more contextual analysis prompt using Qs + answer availability
+            qa_summary_lines = []
+            for idx, pair in enumerate(qa_pairs, 1):
+                answered = "provided" if audio_flags[idx - 1] else "not provided"
+                qa_summary_lines.append(
+                    f"Q{idx}: {pair['question']}\nCandidate answer: {answered}"
+                )
+
+            analysis_prompt = f"""
 You are an expert interviewer.
 
-The candidate answered questions using audio only.
-No transcript is available.
+Below is an audio-only mock interview session.
+For each question, you see whether the candidate answered it or not.
+You do NOT have the actual transcript, so base your evaluation on which questions were attempted,
+their difficulty, and the interview context.
 
-Evaluate the candidate based on:
-- Clarity
-- Confidence
-- Structure
-- Professional tone
-- Likely technical depth
+Interview context:
+Career Field: {career}
+Interview Type: {interview_type}
+Difficulty Level: {difficulty}
+Target Role: {job_role or "Not specified"}
+Custom Focus: {custom_focus or "None"}
+
+Questions and answer availability:
+{chr(10).join(qa_summary_lines)}
 
 Return a detailed, honest evaluation using explicit words like
 "strong", "excellent", "good", "weak", "poor", "unclear", "lacking"
@@ -558,6 +583,7 @@ Improvement tips:
             st.metric("Overall Score", f"{score}/100")
             st.progress(score / 100)
 
+            # PDF content
             pdf_text_lines = []
             pdf_text_lines.append("Interview Report")
             pdf_text_lines.append("=" * 40)
@@ -565,6 +591,8 @@ Improvement tips:
             pdf_text_lines.append(f"Career Field: {career}")
             pdf_text_lines.append(f"Interview Type: {interview_type}")
             pdf_text_lines.append(f"Difficulty Level: {difficulty}")
+            pdf_text_lines.append(f"Target Role: {job_role or 'Not specified'}")
+            pdf_text_lines.append(f"Custom Focus: {custom_focus or 'None'}")
             pdf_text_lines.append("")
 
             for i, pair in enumerate(qa_pairs, 1):
@@ -595,8 +623,9 @@ Improvement tips:
     if st.button("Logout"):
         reset_to_home()
 
-
 # DASHBOARD[COMPANY]
+import streamlit as st
+
 def render_company_dashboard():
     st.header("Company Question Generator")
 
@@ -618,41 +647,93 @@ def render_company_dashboard():
 
     q_type = st.selectbox(
         "Interview Round / Question Type",
-        ["Behavioral", "HR", "Technical", "Coding Round"]
+        ["Behavioral", "HR", "Technical", "Coding Round"],
     )
 
+    # Inputs specific to company
+    role_title = st.text_input(
+        "Role title",
+        placeholder="e.g., Senior Data Engineer",
+    )
+    extra_instr = st.text_area(
+        "Additional instructions for AI (optional)",
+        placeholder="e.g., Focus more on distributed systems, Kafka, and data modelling.",
+    )
+    num_q_company = st.slider("Number of questions", 3, 15, 5, key="num_q_company")
+
     if st.button("Generate Questions"):
-        prompt_text = f"""
+        # --- Prompt selection ---
+        if q_type == "Coding Round":
+            prompt_text = f"""
+You are a senior {topic} interviewer at a top tech company.
+Speak in a professional, concise, and realistic coding interview tone.
+
+Design coding interview questions for a {role_title or "Not specified"} in a {q_type}.
+
+Role/topic: {topic}
+Difficulty: {level}
+
+Extra instructions from company (if any): {extra_instr or "None"}
+
+Generate exactly {num_q_company} interview question and answer pairs.
+
+For each pair:
+- First line: start with "Q:" then the coding question.
+- Immediately after that, include a line starting with "Demo answer:" then provide DEMO CODE.
+- The demo code can span multiple lines and may include triple backticks for code blocks.
+
+Example format for ONE pair:
+Q: Write a function to reverse a string.
+Demo answer:
+```python
+def reverse_string(s: str) -> str:
+    return s[::-1]
+Hard rules:
+
+Always include the line starting with "Demo answer:" for every question.
+
+Do NOT add numbering or bullets.
+
+Do NOT add any extra text before or after the Q/A pairs.
+"""
+        else:
+            prompt_text = f"""
 You are a senior {topic} interviewer at a top tech company.
 Speak in a professional, concise, and realistic interview tone.
 
 Design questions for a {q_type} round.
 Role/topic: {topic}
+Role title: {role_title or "Not specified"}
 Difficulty: {level}
 
-Generate exactly 5 interview question and answer pairs.
+Extra instructions from company (if any): {extra_instr or "None"}
+
+Generate exactly {num_q_company} interview question and answer pairs.
 
 For each pair:
-- First line: start with "Q:" then the question.
-- Second line: start with "Demo answer:" then a strong but realistic candidate answer.
-- Answers should:
-  - Sound like a real candidate speaking in first person ("I ...").
-  - Be structured (2–5 sentences), with brief reasoning or an example.
-  - Match the specified difficulty and round type:
-    - HR / Behavioral: focus on situations, actions, and results (use STAR-like structure).
-    - Technical / Coding: focus on concepts, trade-offs, and brief logic or code explanations.
-- Do NOT add numbering or bullets.
-- Do NOT add any extra text before or after the Q/A pairs.
 
-Example of style (do NOT copy this exact content, just follow the tone and structure):
-Q: Tell me about a challenging bug you fixed in production.
-Demo answer: In my last role, I faced an outage caused by a race condition in our caching layer.
-I first rolled back the latest deployment to restore stability, then reproduced the issue in a lower
-environment. I added detailed logging, identified the problematic concurrent writes, and refactored
-the code to use optimistic locking. Finally, I wrote regression tests and monitored the fix in
-production to ensure the issue did not recur.
+First line: start with "Q:" then the question.
+
+Second line: start with "Demo answer:" then a strong but realistic candidate answer.
+
+Answers should:
+
+Sound like a real candidate speaking in first person ("I ...").
+
+Be structured (2–5 sentences), with brief reasoning or an example.
+
+Match the specified difficulty and round type:
+
+HR / Behavioral: focus on situations, actions, and results (use STAR-like structure).
+
+Technical: focus on concepts, trade-offs, and brief logic or code explanations.
+
+Do NOT add numbering or bullets.
+
+Do NOT add any extra text before or after the Q/A pairs.
 """
 
+        # --- Call AI ---
         q_raw, err = prompt(prompt_text, mode="questions")
         if err:
             st.error(err)
@@ -660,37 +741,93 @@ production to ensure the issue did not recur.
             if not isinstance(q_raw, str) or not q_raw.strip():
                 st.error("Could not generate questions. Please try again.")
             else:
-                lines = [l.strip() for l in q_raw.split("\n") if l.strip()]
-                qa_pairs = []
-                i = 0
-                while i < len(lines):
-                    line = lines[i]
-                    if line.startswith("Q:"):
-                        q = line.split(":", 1)[1].strip()
-                        demo = ""
-                        if i + 1 < len(lines) and lines[i + 1].startswith("Demo answer:"):
-                            demo = lines[i + 1].split(":", 1)[1].strip()
-                            i += 1
-                        qa_pairs.append({"question": q, "demo_answer": demo})
-                    i += 1
+                # Optional: debug view to inspect raw LLM output once
+                with st.expander("DEBUG raw LLM output"):
+                    st.text(q_raw)
 
-                qa_pairs = qa_pairs[:5]
-                if len(qa_pairs) < 5:
-                    st.error("Failed to parse 5 Q/A pairs from the AI response. Please retry.")
-                    st.write("DEBUG RAW:", q_raw)
+                lines = [l for l in q_raw.split("\n")]
+                qa_pairs = []
+
+                current_q = None
+                current_demo_lines = []
+                in_demo = False
+
+                # --- Robust parser: Q: + Demo answer: with multi-line code ---
+                for raw_line in lines:
+                    line = raw_line.strip()
+
+                    # Preserve blank lines inside demo answers (code blocks)
+                    if not line:
+                        if in_demo:
+                            current_demo_lines.append("")
+                        continue
+
+                    # Normalize leading bullets / numbering
+                    clean_line = line.lstrip("-*0123456789. ").strip()
+
+                    # New question
+                    if clean_line.startswith("Q:"):
+                        # flush previous
+                        if current_q is not None:
+                            demo_answer = "\n".join(current_demo_lines).strip()
+                            qa_pairs.append(
+                                {"question": current_q, "demo_answer": demo_answer}
+                            )
+                        parts = clean_line.split(":", 1)
+                        if len(parts) > 1:
+                            current_q = parts[1].strip()  # keep only the question text
+                        else:
+                            current_q = clean_line.strip()
+                        current_demo_lines = []
+                        in_demo = False
+                        continue
+
+                    # Start of demo answer
+                    if clean_line.startswith("Demo answer:"):
+                        in_demo = True
+                        parts = clean_line.split("Demo answer:", 1)
+                        after = parts[1].strip() if len(parts) > 1 else ""
+
+                        current_demo_lines.append(after)
+                        continue
+
+                    # Lines inside demo answer (code, text, etc.)
+                    if in_demo:
+                        current_demo_lines.append(raw_line)
+
+                # Flush last pair
+                if current_q is not None:
+                    demo_answer = "\n".join(current_demo_lines).strip()
+                    qa_pairs.append(
+                        {"question": current_q, "demo_answer": demo_answer}
+                    )
+
+                # Keep requested count
+                qa_pairs = qa_pairs[:num_q_company]
+
+                if len(qa_pairs) < num_q_company:
+                    st.error(
+                        "Failed to parse all Q/A pairs from the AI response. Please retry."
+                    )
                 else:
                     st.session_state["company_qa_pairs"] = qa_pairs
 
+    # --- Display section ---
     qa_pairs = st.session_state.get("company_qa_pairs") or []
 
     if qa_pairs:
         st.subheader("Generated Questions with Demo Answers")
-        for idx, pair in enumerate(qa_pairs, start=1):
-            st.markdown(f"**Q{idx}: {pair['question']}**")
-            with st.expander("View demo answer"):
-                st.write(pair["demo_answer"] or "No demo answer available.")
 
-        # Prepare PDF text
+        for idx, pair in enumerate(qa_pairs, start=1):
+            st.markdown(f"Q{idx}: {pair['question']}")
+            with st.expander("View demo answer"):
+                if pair["demo_answer"]:
+                    # Render markdown/code blocks correctly
+                    st.markdown(pair["demo_answer"], unsafe_allow_html=False)
+                else:
+                    st.write("No demo answer available.")
+
+        # --- PDF build section ---
         pdf_lines = []
         pdf_lines.append("Company Question Set")
         pdf_lines.append("=" * 40)
@@ -698,11 +835,16 @@ production to ensure the issue did not recur.
         pdf_lines.append(f"Topic: {topic}")
         pdf_lines.append(f"Round: {q_type}")
         pdf_lines.append(f"Difficulty: {level}")
+        pdf_lines.append(f"Role title: {role_title or 'Not specified'}")
+        pdf_lines.append(f"Extra instructions: {extra_instr or 'None'}")
         pdf_lines.append("")
+
         for i, pair in enumerate(qa_pairs, 1):
             pdf_lines.append(f"Q{i}: {pair['question']}")
-            pdf_lines.append(f"Demo answer: {pair['demo_answer']}")
+            pdf_lines.append("Demo answer:")
+            pdf_lines.append(pair["demo_answer"])
             pdf_lines.append("")
+
         pdf_text = "\n".join(pdf_lines)
 
         pdf_bytes = create_interview_pdf(pdf_text)
@@ -716,7 +858,6 @@ production to ensure the issue did not recur.
 
     if st.button("Logout"):
         reset_to_home()
-
 
 state = st.session_state["navbar_state"]
 
