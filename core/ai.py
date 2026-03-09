@@ -2,6 +2,7 @@ import requests
 import streamlit as st
 import re
 
+
 # =========================
 # CONFIG
 # =========================
@@ -30,7 +31,7 @@ def _remove_think_blocks(text: str) -> str:
 def _groq_chat(user_prompt: str, mode: str = "general"):
     """
     mode:
-      - questions : STRICT interview questions only
+      - questions : STRICT interview questions (or Q/A pairs) only
       - analysis  : interview feedback & evaluation
       - general   : default free-form response
     """
@@ -41,16 +42,16 @@ def _groq_chat(user_prompt: str, mode: str = "general"):
             "You are an expert interviewer.\n"
             "DO NOT reveal your reasoning.\n"
             "DO NOT include <think> tags or internal thoughts.\n"
-            "ONLY output final interview questions.\n\n"
+            "ONLY output final interview questions or Q/A pairs.\n\n"
             "Rules:\n"
-            "- Each line must be ONE complete interview question\n"
+            "- Each line must be ONE complete interview question or Q/A line\n"
             "- Each question must end with a question mark\n"
             "- No explanations\n"
             "- No headings\n"
             "- No numbering\n"
             "- No bullet points\n"
             "- No extra text\n"
-            "- Output ONLY the questions\n"
+            "- Output ONLY the questions or Q/A pairs\n"
         )
         temperature = 0.2
 
@@ -84,8 +85,14 @@ def _groq_chat(user_prompt: str, mode: str = "general"):
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
-        "max_tokens": 800,
+        # Groq recommends max_completion_tokens instead of max_tokens.[web:1]
+        "max_completion_tokens": 800,
+        "top_p": 1,
     }
+
+    # For strict question generation, you usually do NOT want visible reasoning.[web:21]
+    if mode == "questions":
+        payload["reasoning_effort"] = "none"
 
     try:
         response = requests.post(
