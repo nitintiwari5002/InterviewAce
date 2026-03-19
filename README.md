@@ -93,7 +93,7 @@ streamlit run app.py
 
 ## **🌐 Environment Requirements**
 
-- Python 3.9+
+- Python 3.10+
 
 - Groq API of the following model:
 
