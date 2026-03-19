@@ -107,7 +107,7 @@ streamlit run app.py
 
 - Global performance statistics
 
-## **🌐DO CHECK OUT WEBSITE**
+## **🌐 DO CHECK OUT WEBSITE**
 
 "https://interviewace.streamlit.app/"
 
