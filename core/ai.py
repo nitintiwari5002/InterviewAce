@@ -2,7 +2,6 @@ import requests
 import streamlit as st
 import re
 
-
 # =========================
 # CONFIG
 # =========================
@@ -13,66 +12,40 @@ GROQ_MODEL = "qwen/qwen3-32b"
 
 
 # =========================
-# INTERNAL HELPERS
+# CLEAN OUTPUT
 # =========================
 def _remove_think_blocks(text: str) -> str:
-    """
-    Removes <think>...</think> blocks produced by reasoning models
-    like Qwen / DeepSeek.
-    """
     if not text:
         return ""
     return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
 
 
 # =========================
-# CORE GROQ CALL
+# CORE API CALL
 # =========================
 def _groq_chat(user_prompt: str, mode: str = "general"):
-    """
-    mode:
-      - questions : STRICT interview questions (or Q/A pairs) only
-      - analysis  : interview feedback & evaluation
-      - general   : default free-form response
-    """
 
-    # ---------- SYSTEM PROMPTS ----------
     if mode == "questions":
         system_prompt = (
             "You are an expert interviewer.\n"
-            "DO NOT reveal your reasoning.\n"
-            "DO NOT include <think> tags or internal thoughts.\n"
-            "ONLY output final interview questions or Q/A pairs.\n\n"
-            "Rules:\n"
-            "- Each line must be ONE complete interview question or Q/A line\n"
-            "- Each question must end with a question mark\n"
-            "- No explanations\n"
-            "- No headings\n"
-            "- No numbering\n"
-            "- No bullet points\n"
-            "- No extra text\n"
-            "- Output ONLY the questions or Q/A pairs\n"
+            "ONLY output interview questions.\n"
+            "No explanations. No formatting."
         )
         temperature = 0.2
 
     elif mode == "analysis":
         system_prompt = (
-            "You are a senior interviewer and career coach.\n"
-            "Analyze the candidate's responses and provide:\n"
-            "- Strengths\n"
-            "- Weaknesses\n"
-            "- Concrete improvement suggestions\n"
-            "Be professional, concise, and constructive."
+            "You are a resume reviewer and career coach.\n"
+            "Give structured, concise feedback."
         )
-        temperature = 0.6
+        temperature = 0.5
 
     else:
         system_prompt = (
-            "You are an expert technical interviewer and career coach."
+            "You are an expert resume writer and career coach."
         )
         temperature = 0.7
 
-    # ---------- REQUEST ----------
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -85,14 +58,8 @@ def _groq_chat(user_prompt: str, mode: str = "general"):
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
-        # Groq recommends max_completion_tokens instead of max_tokens.[web:1]
         "max_completion_tokens": 800,
-        "top_p": 1,
     }
-
-    # For strict question generation, you usually do NOT want visible reasoning.[web:21]
-    if mode == "questions":
-        payload["reasoning_effort"] = "none"
 
     try:
         response = requests.post(
@@ -102,30 +69,79 @@ def _groq_chat(user_prompt: str, mode: str = "general"):
             timeout=60,
         )
         response.raise_for_status()
+
         data = response.json()
+        raw = data["choices"][0]["message"]["content"]
 
-        raw_output = data["choices"][0]["message"]["content"]
-
-        # 🔒 REMOVE REASONING LEAKS
-        cleaned_output = _remove_think_blocks(raw_output)
-
-        return cleaned_output, None
-
-    except requests.exceptions.RequestException as e:
-        return None, f"API Request Error: {str(e)}"
+        return _remove_think_blocks(raw), None
 
     except Exception as e:
-        return None, f"Unexpected Error: {str(e)}"
+        return None, str(e)
 
 
 # =========================
-# PUBLIC API (USED BY home.py)
+# PUBLIC FUNCTIONS
 # =========================
-def prompt(prompt_text: str, mode: str = "general"):
-    """
-    Safe wrapper used by home.py
 
-    Returns:
-        (response_text, error)
+def improve_summary(summary):
+    prompt = f"""
+    Improve this resume summary to be ATS-friendly.
+
+    {summary}
+
+    Keep it concise, impactful, and keyword-rich.
     """
-    return _groq_chat(prompt_text, mode)
+    return _groq_chat(prompt)
+
+
+def generate_bullets(role, text):
+    prompt = f"""
+    Convert this into strong resume bullet points.
+
+    Role: {role}
+    Text: {text}
+
+    Rules:
+    - Use action verbs
+    - Add impact (numbers if possible)
+    - Keep concise
+    - No numbering
+    """
+    return _groq_chat(prompt)
+
+
+def resume_score(resume_text):
+    prompt = f"""
+    Evaluate this resume.
+
+    {resume_text}
+
+    Output:
+    - ATS Score /100
+    - Strengths
+    - Weaknesses
+    - Improvements
+    """
+    return _groq_chat(prompt, mode="analysis")
+
+
+def match_keywords(resume, job_desc):
+    prompt = f"""
+    Compare resume with job description.
+
+    Resume:
+    {resume}
+
+    Job Description:
+    {job_desc}
+
+    Output:
+    - Missing keywords
+    - Matching keywords
+    - Suggestions
+    """
+    return _groq_chat(prompt, mode="analysis")
+
+
+def prompt(text, mode="general"):
+    return _groq_chat(text, mode)
