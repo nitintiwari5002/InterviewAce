@@ -1,201 +1,298 @@
 import streamlit as st
-import base64
-from io import BytesIO
-from PIL import Image
+from core.ai import improve_summary, generate_bullets, resume_score, match_keywords
+import pdfkit
+import tempfile
 
-st.set_page_config(page_title="Resume Builder", layout="wide")
-st.title("📄 Simple Resume Builder")
+st.set_page_config(page_title="AI Resume Builder", layout="wide")
 
-# ---------- Convert Image to Base64 ----------
-def image_to_base64(image_file):
-    if image_file is None:
-        return None
-    img = Image.open(image_file).convert("RGB")
-    img = img.resize((150, 150))
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode()
+st.title("🚀 AI Resume Builder (ATS + Modern)")
 
-# ---------- HTML Generator ----------
-def generate_resume_html(data, photo_base64=None):
+# =========================
+# SESSION STATE
+# =========================
+if "generated_html" not in st.session_state:
+    st.session_state.generated_html = ""
 
-    photo_html = ""
-    if photo_base64:
-        photo_html = f"""
-        <div style="text-align:center;">
-            <img src="data:image/png;base64,{photo_base64}" 
-                 style="width:130px;height:130px;border-radius:50%;margin-bottom:15px;">
-        </div>
-        """
+if "skill_sections" not in st.session_state:
+    st.session_state.skill_sections = []
 
-    experience_html = ""
-    for exp in data["experience"]:
-        experience_html += f"""
-        <h3>{exp['position']} - {exp['company']}</h3>
-        <p><i>{exp['duration']}</i></p>
-        <p>{exp['description']}</p>
-        <br>
-        """
+# =========================
+# INPUT SECTION
+# =========================
+st.subheader("👤 Personal Information")
 
-    education_html = ""
-    for edu in data["education"]:
-        education_html += f"""
-        <h3>{edu['degree']} - {edu['school']}</h3>
-        <p><i>{edu['year']}</i></p>
-        <p>{edu['details']}</p>
-        <br>
-        """
+name = st.text_input("Full Name", key="name")
+title = st.text_input("Job Title", key="title")
+phone = st.text_input("Phone", key="phone")
+email = st.text_input("Email", key="email")
+linkedin = st.text_input("LinkedIn", key="linkedin")
+github = st.text_input("GitHub", key="github")
 
-    skills_html = ", ".join([skill["name"] for skill in data["skills"]])
-    hobbies_html = ", ".join(data["hobbies"])
+mode = st.radio("Resume Mode", ["ATS (Simple)", "Modern (Styled)"])
+layout = st.radio("Layout (Modern Only)", ["One Column", "Two Column"])
 
-    html = f"""
-    <html>
-    <head>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                margin: 40px;
-                line-height: 1.6;
-            }}
-            h1 {{
-                margin-bottom: 5px;
-            }}
-            h2 {{
-                border-bottom: 1px solid black;
-                padding-bottom: 5px;
-                margin-top: 30px;
-            }}
-        </style>
-    </head>
-    <body>
+# =========================
+# SUMMARY
+# =========================
+st.subheader("🧠 Professional Summary")
 
-        {photo_html}
+summary = st.text_area("Write your summary", key="summary")
 
-        <h1>{data['name']}</h1>
-        <p><b>{data['title']}</b></p>
-        <p>{data['phone']} | {data['email']} | {data['website']}</p>
+if st.button("✨ Improve Summary"):
+    res, _ = improve_summary(summary)
+    if res:
+        summary = res
+        st.success("Improved!")
+        st.write(res)
 
-        <h2>Profile</h2>
-        <p>{data['profile']}</p>
+# =========================
+# EXPERIENCE
+# =========================
+st.subheader("💼 Experience")
 
-        <h2>{data['experience_heading']}</h2>
-        {experience_html}
+experience = st.text_area("Enter experience (each point new line)", key="experience")
 
-        <h2>Education</h2>
-        {education_html}
+if st.button("⚡ Generate Bullet Points"):
+    res, _ = generate_bullets(title, experience)
+    if res:
+        experience = res
+        st.success("Improved!")
+        st.write(res)
 
-        <h2>Skills</h2>
-        <p>{skills_html}</p>
+# =========================
+# PROJECTS
+# =========================
+st.subheader("🚀 Projects")
 
-        <h2>Hobbies</h2>
-        <p>{hobbies_html}</p>
+projects = st.text_area(
+    "Format: Title | Tech | Bullet1, Bullet2",
+    key="projects"
+)
 
-    </body>
-    </html>
-    """
+# =========================
+# EDUCATION
+# =========================
+st.subheader("🎓 Education")
+
+education = st.text_area(
+    "Enter each education detail on new line",
+    key="education"
+)
+
+# =========================
+# SKILLS (DYNAMIC)
+# =========================
+st.subheader("🛠 Technical Skills")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    skill_header = st.text_input("Skill Category", key="skill_header")
+
+with col2:
+    skill_values = st.text_input("Skills (comma separated)", key="skill_values")
+
+if st.button("➕ Add Skill Section"):
+    if skill_header and skill_values:
+        st.session_state.skill_sections.append((skill_header, skill_values))
+        st.success(f"Added {skill_header}")
+
+# Display added skills
+for header, values in st.session_state.skill_sections:
+    st.write(f"**{header}:** {values}")
+
+# =========================
+# CERTIFICATIONS
+# =========================
+st.subheader("📜 Certifications")
+
+certifications = st.text_input("Comma separated", key="certifications")
+
+# =========================
+# HELPERS
+# =========================
+def to_list(text):
+    return [line.strip() for line in text.split("\n") if line.strip()]
+
+def format_list(items):
+    return "<ul>" + "".join([f"<li>{i}</li>" for i in items]) + "</ul>" if items else ""
+
+def format_projects(projects_text):
+    html = ""
+    for line in projects_text.split("\n"):
+        if not line.strip():
+            continue
+
+        parts = line.split("|")
+        title = parts[0].strip() if len(parts) > 0 else ""
+        tech = parts[1].strip() if len(parts) > 1 else ""
+        desc = parts[2].strip() if len(parts) > 2 else ""
+
+        bullets = [d.strip() for d in desc.split(",") if d.strip()]
+
+        if title:
+            html += f"<p><b>{title}</b>" + (f" | {tech}" if tech else "") + "</p>"
+
+        html += format_list(bullets)
 
     return html
 
+def format_skills_sections(skill_sections):
+    html = ""
+    for header, skills in skill_sections:
+        skills_list = [s.strip() for s in skills.split(",") if s.strip()]
+        if header and skills_list:
+            html += f"<p><b>{header}:</b> {', '.join(skills_list)}</p>"
+    return html
 
-# ---------- Career Level ----------
-career_level = st.selectbox("Career Level", ["Fresher", "Experienced"])
+def generate_pdf(html):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        pdfkit.from_string(html, tmp.name)
+        return tmp.name
 
-# ---------- Form ----------
-with st.form("resume_form"):
+# =========================
+# GENERATE RESUME
+# =========================
+if st.button("🚀 Generate Resume"):
 
-    st.subheader("Personal Information")
+    exp_html = format_list(to_list(experience))
+    edu_html = format_list(to_list(education))
+    proj_html = format_projects(projects)
+    skills_html = format_skills_sections(st.session_state.skill_sections)
+    cert_html = format_list([c.strip() for c in certifications.split(",") if c.strip()])
 
-    photo_file = st.file_uploader("Upload Photo", type=["jpg", "jpeg", "png"])
-    photo_base64 = image_to_base64(photo_file) if photo_file else None
+    contact_parts = [title, phone, email, linkedin, github]
+    contact_line = " | ".join([c for c in contact_parts if c])
 
-    full_name = st.text_input("Full Name")
-    role = st.text_input("Job Title")
-    phone = st.text_input("Phone")
-    email = st.text_input("Email")
-    website = st.text_input("Website")
-    profile = st.text_area("Professional Summary")
+    # =========================
+    # ATS VERSION
+    # =========================
+    if mode == "ATS (Simple)":
 
-    # ---------- Experience / Internship ----------
-    exp_heading = "Internships / Projects" if career_level == "Fresher" else "Work Experience"
-    st.subheader(exp_heading)
+        html = f"""
+        <html>
+        <body>
 
-    num_exp = st.number_input("Number of entries", 1, 5, 1)
+        <h1>{name}</h1>
+        <p>{contact_line}</p>
 
-    experience_list = []
+        {f"<h2>Professional Summary</h2><p>{summary}</p>" if summary else ""}
+        {f"<h2>Skills</h2>{skills_html}" if skills_html else ""}
+        {f"<h2>Experience</h2>{exp_html}" if exp_html else ""}
+        {f"<h2>Projects</h2>{proj_html}" if proj_html else ""}
+        {f"<h2>Education</h2>{edu_html}" if edu_html else ""}
+        {f"<h2>Certifications</h2>{cert_html}" if cert_html else ""}
 
-    for i in range(num_exp):
-        st.markdown(f"### Entry {i+1}")
-        position = st.text_input("Role / Position", key=f"pos_{i}")
-        company = st.text_input("Company / Organization", key=f"comp_{i}")
-        duration = st.text_input("Duration", key=f"dur_{i}")
-        description = st.text_area("Description", key=f"desc_{i}")
+        </body>
+        </html>
+        """
 
-        experience_list.append({
-            "position": position,
-            "company": company,
-            "duration": duration,
-            "description": description
-        })
+    # =========================
+    # MODERN VERSION
+    # =========================
+    else:
 
-    # ---------- Education ----------
-    st.subheader("Education")
+        if layout == "One Column":
+            html = f"""
+            <html>
+            <head>
+            <style>
+            body {{ font-family: Arial; margin:40px; }}
+            h1 {{ text-align:center; }}
+            .section {{ margin-top:20px; }}
+            .title {{ font-weight:bold; border-bottom:1px solid #ccc; }}
+            </style>
+            </head>
+            <body>
 
-    num_edu = st.number_input("Number of education entries", 1, 3, 1)
+            <h1>{name}</h1>
+            <p style="text-align:center;">{contact_line}</p>
 
-    education_list = []
+            {f"<div class='section'><div class='title'>SUMMARY</div><p>{summary}</p></div>" if summary else ""}
+            {f"<div class='section'><div class='title'>SKILLS</div>{skills_html}</div>" if skills_html else ""}
+            {f"<div class='section'><div class='title'>EXPERIENCE</div>{exp_html}</div>" if exp_html else ""}
+            {f"<div class='section'><div class='title'>PROJECTS</div>{proj_html}</div>" if proj_html else ""}
+            {f"<div class='section'><div class='title'>EDUCATION</div>{edu_html}</div>" if edu_html else ""}
+            {f"<div class='section'><div class='title'>CERTIFICATIONS</div>{cert_html}</div>" if cert_html else ""}
 
-    for i in range(num_edu):
-        st.markdown(f"### Education {i+1}")
-        degree = st.text_input("Degree", key=f"deg_{i}")
-        school = st.text_input("College / University", key=f"sch_{i}")
-        year = st.text_input("Year", key=f"year_{i}")
-        details = st.text_input("Details (CGPA etc)", key=f"det_{i}")
+            </body>
+            </html>
+            """
 
-        education_list.append({
-            "degree": degree,
-            "school": school,
-            "year": year,
-            "details": details
-        })
+        else:
+            html = f"""
+            <html>
+            <head>
+            <style>
+            body {{ font-family: Arial; margin:30px; }}
+            .container {{ display:flex; }}
+            .left {{ width:30%; padding-right:20px; }}
+            .right {{ width:70%; }}
+            .section {{ margin-top:20px; }}
+            .title {{ font-weight:bold; border-bottom:1px solid #ccc; }}
+            </style>
+            </head>
 
-    # ---------- Skills ----------
-    st.subheader("Skills")
-    skills_raw = st.text_input("Enter skills separated by comma")
-    skills_list = [{"name": s.strip()} for s in skills_raw.split(",") if s.strip()]
+            <body>
 
-    # ---------- Hobbies ----------
-    st.subheader("Hobbies")
-    hobbies_raw = st.text_input("Enter hobbies separated by comma")
-    hobbies_list = [h.strip() for h in hobbies_raw.split(",") if h.strip()]
+            <h1>{name}</h1>
+            <p>{contact_line}</p>
 
-    submitted = st.form_submit_button("Generate Resume")
+            <div class="container">
 
-# ---------- After Submit ----------
-if submitted:
+                <div class="left">
+                    {f"<div class='section'><div class='title'>SKILLS</div>{skills_html}</div>" if skills_html else ""}
+                    {f"<div class='section'><div class='title'>CERTIFICATIONS</div>{cert_html}</div>" if cert_html else ""}
+                    {f"<div class='section'><div class='title'>EDUCATION</div>{edu_html}</div>" if edu_html else ""}
+                </div>
 
-    resume_data = {
-        "name": full_name,
-        "title": role,
-        "phone": phone,
-        "email": email,
-        "website": website,
-        "profile": profile,
-        "experience": experience_list,
-        "education": education_list,
-        "skills": skills_list,
-        "hobbies": hobbies_list,
-        "experience_heading": exp_heading,
-    }
+                <div class="right">
+                    {f"<div class='section'><div class='title'>SUMMARY</div><p>{summary}</p></div>" if summary else ""}
+                    {f"<div class='section'><div class='title'>EXPERIENCE</div>{exp_html}</div>" if exp_html else ""}
+                    {f"<div class='section'><div class='title'>PROJECTS</div>{proj_html}</div>" if proj_html else ""}
+                </div>
 
-    html_content = generate_resume_html(resume_data, photo_base64)
+            </div>
 
-    st.download_button(
-        "Download Resume (HTML)",
-        data=html_content,
-        file_name="resume.html",
-        mime="text/html"
-    )
+            </body>
+            </html>
+            """
 
-    st.markdown("### Preview")
-    st.components.v1.html(html_content, height=900, scrolling=True)
+    st.session_state.generated_html = html
+    st.success("✅ Resume Generated!")
+
+# =========================
+# PREVIEW + DOWNLOAD
+# =========================
+if st.session_state.generated_html:
+
+    st.subheader("📄 Preview")
+    st.components.v1.html(st.session_state.generated_html, height=800)
+
+    st.download_button("📥 Download HTML", st.session_state.generated_html, "resume.html")
+
+    try:
+        pdf_file = generate_pdf(st.session_state.generated_html)
+        with open(pdf_file, "rb") as f:
+            st.download_button("📄 Download PDF", f, "resume.pdf")
+    except:
+        st.warning("⚠️ Install wkhtmltopdf for PDF support")
+
+# =========================
+# ATS TOOLS
+# =========================
+st.subheader("📊 ATS Tools")
+
+if st.session_state.generated_html:
+
+    if st.button("📊 Check ATS Score"):
+        res, _ = resume_score(st.session_state.generated_html)
+        if res:
+            st.markdown(res)
+
+    job_desc = st.text_area("Paste Job Description")
+
+    if st.button("🎯 Match Job"):
+        res, _ = match_keywords(st.session_state.generated_html, job_desc)
+        if res:
+            st.markdown(res)
