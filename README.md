@@ -52,8 +52,8 @@ Companies can also generate custom interview questions using AI.
 | Component | Technology |
 |----------|------------|
 | Frontend | Streamlit |
-| Backend | Python |
-| Database | SQLite |
+| Backend | Streamlit |
+| Database | SQLite3 |
 | AI Model | Qwen3 |
 | PDF Engine | FPDF |
 | API Handling | Requests |
