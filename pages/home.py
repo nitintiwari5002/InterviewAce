@@ -277,7 +277,7 @@ def render_login():
         reset_to_home()
 
 def render_register():
-    role = st.radio("Register as:", ["User", "Company"], horizontal=True)
+    role = st.radio("Register as:", ["Company"], horizontal=True)
 
     if role == "Company":
         c = st.text_input("Company Name")
