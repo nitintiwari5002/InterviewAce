@@ -5,7 +5,7 @@
 <h1 align="center">🎯 InterviewAce</h1>
 
 <p align="center">
-  <b>AI-powered interview preparation platform for engineering students and companies.</b>
+  <b>AI-powered interview question generation platform for tech companies.</b>
 </p>
 
 <p align="center">
@@ -19,21 +19,11 @@
 
 ## 🚀 About InterviewAce
 
-InterviewAce is an **AI-driven mock interview system** built using **Streamlit**, designed to help engineering students practice interviews, receive AI-powered feedback, built their own **Resume** and download their full reports — including **text, audio, and video responses**.
-
-Companies can also generate custom interview questions using AI.
+InterviewAce is an **AI-driven interview question generation system** built using **Streamlit**, designed to help built their own **Resume** and to help Companies generate custom interview questions using AI.
 
 ---
 
 ## ⭐ Key Features
-
-## 🔹 For Students
-- 🎤 **AI-powered mock interviews**
-- ✍️ Supports text, audio, and video responses
-- 🤖 Real-time AI feedback with improvement suggestions
-- 📄 Download full interview + analysis + Resume as **PDF**
-- 🎓 Career & interview-type based question generation
-- 👤 User registration and login system
 
 ## 🔹 For Companies
 - 🧠 AI-based interview question generator
@@ -125,4 +115,4 @@ Contributions are welcome!
 
 ### **❤️ Credits**
 
-Built with passion by a team **Shaurya** & dedicated to helping students succeed and betterment of the Corporate World.
+Built with passion by a team **Shaurya** & dedicated to help and for betterment of the Corporate World.
