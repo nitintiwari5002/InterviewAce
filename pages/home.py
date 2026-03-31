@@ -279,14 +279,7 @@ def render_login():
 def render_register():
     role = st.radio("Register as:", ["User", "Company"], horizontal=True)
 
-    if role == "User":
-        u = st.text_input("Username")
-        e = st.text_input("Email")
-        p = st.text_input("Password", type="password")
-        if st.button("Register"):
-            register_user(u, e, p)
-            st.success("Registered successfully")
-    else:
+    if role == "Company":
         c = st.text_input("Company Name")
         e = st.text_input("Email")
         p = st.text_input("Password", type="password")
