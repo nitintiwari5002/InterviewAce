@@ -108,7 +108,7 @@ def render_welcome():
         """
         <h1 style='text-align:center; margin-top: 1.5rem;'>Welcome to InterviewAce!</h1>
         <h4 style='text-align:center; font-weight: 400; margin-bottom: 1.2rem;'>
-            Practice AI-powered mock interviews, get feedback, and build confidence for real interviews.
+            Build AI Powered Interview Questions and Sample Code By team Shaurya
         </h4>
         """,
         unsafe_allow_html=True,
