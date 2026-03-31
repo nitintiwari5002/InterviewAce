@@ -6,6 +6,19 @@ from fpdf import FPDF
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def create_interview_pdf(text: str) -> bytes:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("Arial", size=12)
+
+    safe_text = _sanitize_for_pdf(text)
+
+    for line in safe_text.split("\n"):
+        pdf.multi_cell(0, 8, line)
+
+    return pdf.output(dest="S").encode("latin-1", "ignore")
+    
 from core.db import (
     create_tables,
     register_company,
