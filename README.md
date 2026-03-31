@@ -99,8 +99,7 @@ streamlit run app.py
 
 ## **🌐 DO CHECK OUT WEBSITE**
 
-"https://interviewace.streamlit.app/"
-
+" https://company-ai.streamlit.app/ "
 ## **🤝 Contributing**
 
 Contributions are welcome!
