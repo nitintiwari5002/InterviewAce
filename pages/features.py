@@ -71,22 +71,7 @@ with center:
 
 # --- Features Section ---
 st.markdown("<h1 style='text-align:center; margin-top:20px;'>Everything You Need to Succeed</h1>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align:center;'>Our AI-powered platform provides comprehensive interview preparation tailored for engineering students.</h4>", unsafe_allow_html=True)
-st.markdown("---")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown(
-        "<div class='feature-box'><h3>AI-powered Interviews</h3>Practice with intelligent, adaptive mock interviews and detailed feedback.</div>", 
-        unsafe_allow_html=True
-    )
-with col2:
-    st.markdown(
-        "<div class='feature-box'><h3>Real-time Analytics</h3>Track your performance and pinpoint areas for improvement instantly.</div>", 
-        unsafe_allow_html=True
-    )
-
+st.markdown("<h4 style='text-align:center;'>Our AI-powered platform provides comprehensive interview questions for the tech companies.</h4>", unsafe_allow_html=True)
 st.markdown("---")
 
 col3, col4 = st.columns(2)
@@ -99,7 +84,7 @@ with col3:
 
 with col4:
     st.markdown(
-        "<div class='feature-box'><h3>AI Feedback</h3>Receive customized AI feedback based on the User Interview and helps improve his/her skills.</div>", 
+        "<div class='feature-box'><h3>AI Feedback</h3>Mock questions for the code of Data Structures and prograamming languages</div>", 
         unsafe_allow_html=True
     )
 st.markdown("---")
@@ -119,16 +104,6 @@ with col6:
     )
 
 st.markdown("---")
-
-st.subheader("For Candidates")
-st.markdown(
-    """
-- AI-generated interview questions tailored to role and level.
-- Answer boxes for each question with detailed AI feedback.
-- Overall score and category-wise breakdown (Strengths, Weaknesses, Communication, Technical Depth).
-- Downloadable PDF report of your analysis.
-"""
-)
 
 st.subheader("For Companies")
 st.markdown(
