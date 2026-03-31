@@ -8,9 +8,7 @@ import matplotlib.pyplot as plt
 
 from core.db import (
     create_tables,
-    register_user,
     register_company,
-    login_user,
     login_company,
 )
 from core.ai import prompt
@@ -73,73 +71,6 @@ def _sanitize_for_pdf(text: str) -> str:
         except UnicodeEncodeError:
             cleaned.append("?")
     return "".join(cleaned)
-
-def create_interview_pdf(transcript_text: str) -> bytes:
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=12)
-
-    safe_text = _sanitize_for_pdf(transcript_text)
-
-    for line in safe_text.split("\n"):
-        pdf.multi_cell(0, 8, line)
-
-    pdf_bytes = pdf.output(dest="S").encode("latin-1", "ignore")
-    return pdf_bytes
-
-# SIMPLE SCORING FROM ANALYSIS
-def compute_score_from_analysis(analysis: str) -> int:
-    """Heuristic score 0–100 based on analysis text."""
-    if not isinstance(analysis, str) or not analysis.strip():
-        return 0
-
-    text = analysis.lower()
-    score = 50  # neutral baseline
-
-    positive_keywords = [
-        "strong", "excellent", "good", "confident", "clear",
-        "impressive", "well-structured", "outstanding", "solid",
-    ]
-    negative_keywords = [
-        "weak", "improve", "improvement", "poor", "unclear",
-        "lack", "insufficient", "disorganized", "inconsistent",
-        "needs significant improvement",
-    ]
-
-    for w in positive_keywords:
-        if w in text:
-            score += 5
-    for w in negative_keywords:
-        if w in text:
-            score -= 5
-
-    score = max(0, min(100, score))
-    return score
-
-def get_score_breakdown(analysis: str) -> dict:
-    text = analysis.lower()
-    categories = {
-        "Strengths": 0,
-        "Weaknesses": 0,
-        "Communication": 0,
-        "Technical Depth": 0,
-    }
-
-    if "strength" in text or "strong" in text or "good" in text:
-        categories["Strengths"] = 70
-    if "weak" in text or "improve" in text or "lack" in text:
-        categories["Weaknesses"] = 60
-    if "communication" in text or "clarity" in text or "clear" in text:
-        categories["Communication"] = 65
-    if "technical" in text or "concepts" in text or "knowledge" in text:
-        categories["Technical Depth"] = 65
-
-    for k, v in categories.items():
-        if v == 0:
-            categories[k] = 40
-
-    return categories
 
 # STYLES AND NAVBAR
 st.markdown("""
@@ -330,19 +261,10 @@ if (!window.__heroCarouselV3) {{
                 st.rerun()
 
 def render_login():
-    role = st.radio("Login as:", ["User", "Company"], horizontal=True)
+    role = st.radio("Login as:", ["Company"], horizontal=True)
     st.session_state["role"] = role
 
-    if role == "User":
-        u = st.text_input("Username")
-        p = st.text_input("Password", type="password")
-        if st.button("Login"):
-            if login_user(u, p):
-                st.session_state["navbar_state"] = "user_dashboard"
-                st.rerun()
-            else:
-                st.error("Invalid credentials")
-    else:
+    if role == "Company":
         c = st.text_input("Company Name")
         p = st.text_input("Password", type="password")
         if st.button("Login"):
@@ -351,7 +273,6 @@ def render_login():
                 st.rerun()
             else:
                 st.error("Invalid credentials")
-
     if st.button("Back"):
         reset_to_home()
 
@@ -374,253 +295,6 @@ def render_register():
             st.success("Registered successfully")
 
     if st.button("Back"):
-        reset_to_home()
-
-# DASHBOARD[USER]
-def render_user_dashboard():
-    st.header("🎤 Audio-Only Mock Interview")
-
-    st.subheader("Camera Preview")
-    cam = st.camera_input("Camera Preview", key="single_camera")
-    if cam:
-        # st.camera_input returns an UploadedFile-like object; display as image instead of video
-        st.image(cam)
-
-    career = st.selectbox(
-        "Career Field",
-        [
-            "Software Engineering",
-            "Data Structures",
-            "Data Science",
-            "Machine Learning",
-            "Cyber Security",
-            "Cloud Computing",
-            "Database Administrator",
-            "Data Analyst",
-            "Web Development",
-        ],
-    )
-
-    interview_type = st.selectbox(
-        "Interview Type",
-        ["HR", "Technical", "Behavioral"]
-    )
-
-    difficulty = st.selectbox(
-        "Difficulty Level",
-        ["Basic", "Intermediate", "Advanced"]
-    )
-
-    # NEW: extra inputs for user
-    job_role = st.text_input(
-        "Target role / position (optional)",
-        placeholder="e.g., Backend Engineer at fintech startup"
-    )
-    custom_focus = st.text_area(
-        "Custom focus (optional)",
-        placeholder="e.g., Focus more on system design, REST APIs, and database transactions."
-    )
-    num_q = st.slider("Number of questions", 3, 10, 5)
-
-    # Generate questions + expected answers
-    if st.button("Start Interview", key="btn_start_interview"):
-        question_prompt = f"""
-You are an experienced interviewer for {career} candidates.
-
-Generate exactly {num_q} {interview_type} interview questions for a candidate.
-
-Target role/position (if provided): {job_role or "Not specified"}
-
-Difficulty: {difficulty}
-- If difficulty is Basic, focus on fundamentals and simple, direct questions.
-- If difficulty is Intermediate, focus on applied concepts and moderate depth.
-- If difficulty is Advanced, focus on complex, scenario-based and deep questions.
-
-Additional focus (if provided): {custom_focus or "None"}
-
-For each question:
-- Write the question on one line starting with "Q:".
-- On the next line, write a short expected answer (1–3 sentences) starting with "Expected answer:".
-- Make sure the question and expected answer match the specified difficulty and interview type.
-- Do not add numbering or bullets.
-- Do not add any extra text before or after the Q/A pairs.
-
-Example format:
-Q: Tell me about yourself.
-Expected answer: The candidate gives a concise summary of their background, skills, and goals.
-
-Now generate {num_q} such Q/A pairs.
-"""
-
-        raw, err = prompt(question_prompt, mode="questions")
-        if err:
-            st.error(err)
-            return
-
-        if not isinstance(raw, str) or not raw.strip():
-            st.error("Could not generate questions. Please check the AI service and try again.")
-            return
-
-        qa_pairs = []
-        lines = [l.strip() for l in raw.splitlines() if l.strip()]
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            if line.startswith("Q:"):
-                q = line.split(":", 1)[1].strip()
-                exp = ""
-                if i + 1 < len(lines) and lines[i + 1].startswith("Expected answer:"):
-                    exp = lines[i + 1].split(":", 1)[1].strip()
-                    i += 1
-                qa_pairs.append({"question": q, "expected_answer": exp})
-            i += 1
-
-        qa_pairs = qa_pairs[:num_q]
-
-        if len(qa_pairs) < num_q:
-            st.error("Failed to generate valid questions. Retry.")
-            st.write("DEBUG RAW QUESTIONS:", raw)
-            return
-
-        # store questions and placeholder for audio/transcripts
-        for pair in qa_pairs:
-            pair["audio_bytes"] = None
-            pair["transcript"] = None  # placeholder if you later add ASR
-
-        st.session_state["qa_pairs"] = qa_pairs
-        st.session_state["questions_generated"] = [p["question"] for p in qa_pairs]
-
-    # Render questions, audio, and build transcript lines
-    qa_pairs = st.session_state.get("qa_pairs") or []
-    transcript_lines = []
-    audio_flags = []
-
-    if qa_pairs:
-        for i, pair in enumerate(qa_pairs, 1):
-            q = pair["question"]
-            exp = pair["expected_answer"]
-
-            st.markdown(f"### Q{i}: {q}")
-
-            with st.expander("View expected answer"):
-                st.write(exp or "Expected answer not available.")
-
-            audio = st.audio_input(
-                f"Record Answer (Q{i})",
-                key=f"audio_{i}"
-            )
-
-            transcript_lines.append(f"Q{i}: {q}")
-            transcript_lines.append(f"Expected answer: {exp}")
-
-            if audio:
-                # st.audio_input returns an UploadedFile (file-like object) [web:11]
-                audio_bytes = audio.read()
-                pair["audio_bytes"] = audio_bytes
-                st.audio(audio)
-                transcript_lines.append("Candidate answer: [audio recorded]")
-                audio_flags.append(True)
-            else:
-                transcript_lines.append("Candidate answer: [no answer]")
-                audio_flags.append(False)
-
-        # ---- Analyze interview ----
-        if st.button("Analyze Interview", key="btn_analyze"):
-            if not any(audio_flags):
-                st.warning("Please record at least one audio answer.")
-                return
-
-            # Build a more contextual analysis prompt using Qs + answer availability
-            qa_summary_lines = []
-            for idx, pair in enumerate(qa_pairs, 1):
-                answered = "provided" if audio_flags[idx - 1] else "not provided"
-                qa_summary_lines.append(
-                    f"Q{idx}: {pair['question']}\nCandidate answer: {answered}"
-                )
-
-            analysis_prompt = f"""
-You are an expert interviewer.
-
-Below is an audio-only mock interview session.
-For each question, you see whether the candidate answered it or not.
-You do NOT have the actual transcript, so base your evaluation on which questions were attempted,
-their difficulty, and the interview context.
-
-Interview context:
-Career Field: {career}
-Interview Type: {interview_type}
-Difficulty Level: {difficulty}
-Target Role: {job_role or "Not specified"}
-Custom Focus: {custom_focus or "None"}
-
-Questions and answer availability:
-{chr(10).join(qa_summary_lines)}
-
-Return a detailed, honest evaluation using explicit words like
-"strong", "excellent", "good", "weak", "poor", "unclear", "lacking"
-so that it can be scored automatically.
-
-Format:
-Strengths:
-- ...
-
-Weaknesses:
-- ...
-
-Improvement tips:
-- ...
-"""
-
-            analysis, err = prompt(analysis_prompt, mode="analysis")
-            if err:
-                st.error(err)
-                return
-
-            st.subheader("AI Feedback")
-            st.write(analysis)
-
-            score = compute_score_from_analysis(analysis)
-            st.metric("Overall Score", f"{score}/100")
-            st.progress(score / 100)
-
-            # PDF content
-            pdf_text_lines = []
-            pdf_text_lines.append("Interview Report")
-            pdf_text_lines.append("=" * 40)
-            pdf_text_lines.append("")
-            pdf_text_lines.append(f"Career Field: {career}")
-            pdf_text_lines.append(f"Interview Type: {interview_type}")
-            pdf_text_lines.append(f"Difficulty Level: {difficulty}")
-            pdf_text_lines.append(f"Target Role: {job_role or 'Not specified'}")
-            pdf_text_lines.append(f"Custom Focus: {custom_focus or 'None'}")
-            pdf_text_lines.append("")
-
-            for i, pair in enumerate(qa_pairs, 1):
-                pdf_text_lines.append(f"Q{i}: {pair['question']}")
-                pdf_text_lines.append(f"Expected answer: {pair['expected_answer']}")
-                if audio_flags[i - 1]:
-                    pdf_text_lines.append("Candidate answer: [audio recorded]")
-                else:
-                    pdf_text_lines.append("Candidate answer: [no answer]")
-                pdf_text_lines.append("")
-
-            pdf_text_lines.append("")
-            pdf_text_lines.append("AI Analysis")
-            pdf_text_lines.append("=" * 40)
-            pdf_text_lines.append(analysis)
-
-            full_text = "\n".join(pdf_text_lines)
-
-            pdf = create_interview_pdf(full_text)
-
-            st.download_button(
-                "Download Interview Report (PDF)",
-                pdf,
-                "interview_report.pdf",
-                "application/pdf"
-            )
-
-    if st.button("Logout"):
         reset_to_home()
 
 # DASHBOARD[COMPANY]
@@ -867,7 +541,5 @@ elif state == "login":
     render_login()
 elif state == "register":
     render_register()
-elif state == "user_dashboard":
-    render_user_dashboard()
 elif state == "company_dashboard":
     render_company_dashboard()
