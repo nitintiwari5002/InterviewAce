@@ -125,4 +125,4 @@ Contributions are welcome!
 
 ### **❤️ Credits**
 
-Built with passion by a team **Shaurya** & dedicated to helping students succeed and betterment of the Corporate World.
+Built with passion by a team **Shaurya** & dedicated to helping students succeed and betterment for the Corporate World.
