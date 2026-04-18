@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Framework-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/Database-SQLite-044A64?style=for-the-badge&logo=sqlite&logoColor=white" />
-  <img src="https://img.shields.io/badge/AI-qwen3-8E44AD?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/AI-gpt-oss-120b-8E44AD?style=for-the-badge" />
 </p>
 
 ---
@@ -54,7 +54,7 @@ Companies can also generate custom interview questions using AI.
 | Frontend | Streamlit |
 | Backend | Streamlit |
 | Database | SQLite3 |
-| AI Model | Qwen3 |
+| AI Model | Gpt-Oss-120B |
 | PDF Engine | FPDF |
 | API Handling | Requests |
 
