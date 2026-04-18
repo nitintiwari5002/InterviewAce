@@ -8,7 +8,7 @@ import re
 api_key = st.secrets["key"]
 
 GROQ_BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "qwen/qwen3-32b"
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 # =========================
