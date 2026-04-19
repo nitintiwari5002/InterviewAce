@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="354" height="157" alt="Image" src="https://github.com/user-attachments/assets/3c44bc4c-73e1-4841-82ff-cbfab5947cab" />
+  <img width="200" height="200" alt="Image" src="https://github.com/user-attachments/assets/05a7e0c9-8aba-4f5b-a4b2-7be90d886b7d" />
 </p>
 
 <h1 align="center">🎯 InterviewAce</h1>
