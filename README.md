@@ -17,7 +17,7 @@
 
 ---
 
-## 🚀 About InterviewAce
+##  About InterviewAce
 
 InterviewAce is an **AI-driven mock interview system** built using **Streamlit**, designed to help engineering students practice interviews, receive AI-powered feedback, built their own **Resume** and download their full reports — including **text, audio, and video responses**.
 
@@ -25,29 +25,29 @@ Companies can also generate custom interview questions using AI.
 
 ---
 
-## ⭐ Key Features
+##  Key Features
 
 ## 🔹 For Students
-- 🎤 **AI-powered mock interviews**
-- ✍️ Supports text, audio, and video responses
-- 🤖 Real-time AI feedback with improvement suggestions
-- 📄 Download full interview + analysis + Resume as **PDF**
-- 🎓 Career & interview-type based question generation
-- 👤 User registration and login system
+-  **AI-powered mock interviews**
+-  Supports text, audio, and video responses
+-  Real-time AI feedback with improvement suggestions
+-  Download full interview + analysis + Resume as **PDF**
+-  Career & interview-type based question generation
+-  User registration and login system
 
 ## 🔹 For Companies
-- 🧠 AI-based interview question generator
-- 📚 Difficulty-based filtering (Basic → Advanced)
-- 🏢 Company account system
+-  AI-based interview question generator
+-  Difficulty-based filtering (Basic → Advanced)
+-  Company account system
 
 ## 🔹 UI & Experience
-- 🎨 Smooth gradient UI with branding
-- 🧭 Multi-page navigation (Home, Features, About)
-- 🔐 Secure session handling
+-  Smooth gradient UI with branding
+-  Multi-page navigation (Home, Features, About)
+-  Secure session handling
 
 ---
 
-## 🧰 Tech Stack
+##  Tech Stack
 
 | Component | Technology |
 |----------|------------|
@@ -63,7 +63,7 @@ Companies can also generate custom interview questions using AI.
 
 ---
 
-## ⚙️ Installation
+##  Installation
 
 ## **1️⃣ Clone the repo**
 ```bash
@@ -99,7 +99,7 @@ streamlit run app.py
 
 - Stable internet connection (optional for updates)
 
-## **🛠️ Future Enhancements**
+## ** Future Enhancements**
 
 - Cloud-based progress tracking
 
@@ -107,7 +107,7 @@ streamlit run app.py
 
 - Global performance statistics
 
-## **🌐 DO CHECK OUT WEBSITE**
+## ** DO CHECK OUT WEBSITE**
 
 "https://interviewace.streamlit.app/"
 
