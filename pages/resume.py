@@ -1,11 +1,20 @@
 import streamlit as st
 from core.ai import improve_summary, generate_bullets, resume_score, match_keywords
+from core.theme import (
+    get_complete_theme, 
+    get_glass_navbar,
+    get_empty_state,
+    get_loading_indicator
+)
 import pdfkit
 import tempfile
 
 st.set_page_config(page_title="AI Resume Builder", layout="wide")
 
-st.title("🚀 AI Resume Builder (ATS + Modern)")
+st.markdown(get_complete_theme(), unsafe_allow_html=True)
+st.markdown(get_glass_navbar(), unsafe_allow_html=True)
+
+st.markdown("<div class='hero'><h1>🚀 AI Resume Builder</h1><p>Create ATS-optimized resumes with AI assistance</p></div>", unsafe_allow_html=True)
 
 # =========================
 # SESSION STATE
@@ -39,7 +48,13 @@ st.subheader("🧠 Professional Summary")
 summary = st.text_area("Write your summary", key="summary")
 
 if st.button("✨ Improve Summary"):
+    loading_placeholder = st.empty()
+    loading_placeholder.markdown(
+        get_loading_indicator("Improving summary..."),
+        unsafe_allow_html=True
+    )
     res, _ = improve_summary(summary)
+    loading_placeholder.empty()
     if res:
         summary = res
         st.success("Improved!")
@@ -53,7 +68,13 @@ st.subheader("💼 Experience")
 experience = st.text_area("Enter experience (each point new line)", key="experience")
 
 if st.button("⚡ Generate Bullet Points"):
+    loading_placeholder = st.empty()
+    loading_placeholder.markdown(
+        get_loading_indicator("Generating bullet points..."),
+        unsafe_allow_html=True
+    )
     res, _ = generate_bullets(title, experience)
+    loading_placeholder.empty()
     if res:
         experience = res
         st.success("Improved!")
@@ -154,6 +175,10 @@ def generate_pdf(html):
 # GENERATE RESUME
 # =========================
 if st.button("🚀 Generate Resume"):
+    
+    if not name or not email:
+        st.warning("⚠️ Please provide at least your name and email.")
+        st.stop()
 
     exp_html = format_list(to_list(experience))
     edu_html = format_list(to_list(education))
@@ -277,6 +302,15 @@ if st.session_state.generated_html:
             st.download_button("📄 Download PDF", f, "resume.pdf")
     except:
         st.warning("⚠️ Install wkhtmltopdf for PDF support")
+else:
+    st.markdown(
+        get_empty_state(
+            "📝",
+            "No Resume Generated Yet",
+            "Fill in your information above and click 'Generate Resume' to create your professional resume"
+        ),
+        unsafe_allow_html=True
+    )
 
 # =========================
 # ATS TOOLS
@@ -286,13 +320,37 @@ st.subheader("📊 ATS Tools")
 if st.session_state.generated_html:
 
     if st.button("📊 Check ATS Score"):
+        loading_placeholder = st.empty()
+        loading_placeholder.markdown(
+            get_loading_indicator("Analyzing resume for ATS compatibility..."),
+            unsafe_allow_html=True
+        )
         res, _ = resume_score(st.session_state.generated_html)
+        loading_placeholder.empty()
         if res:
             st.markdown(res)
 
     job_desc = st.text_area("Paste Job Description")
 
     if st.button("🎯 Match Job"):
-        res, _ = match_keywords(st.session_state.generated_html, job_desc)
-        if res:
-            st.markdown(res)
+        if not job_desc:
+            st.warning("⚠️ Please provide a job description.")
+        else:
+            loading_placeholder = st.empty()
+            loading_placeholder.markdown(
+                get_loading_indicator("Matching resume with job description..."),
+                unsafe_allow_html=True
+            )
+            res, _ = match_keywords(st.session_state.generated_html, job_desc)
+            loading_placeholder.empty()
+            if res:
+                st.markdown(res)
+else:
+    st.markdown(
+        get_empty_state(
+            "🔍",
+            "Generate a Resume First",
+            "Create your resume above to access ATS scoring and job matching tools"
+        ),
+        unsafe_allow_html=True
+    )

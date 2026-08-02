@@ -14,6 +14,15 @@ from core.db import (
     login_company,
 )
 from core.ai import prompt
+from core.theme import (
+    get_complete_theme, 
+    get_glass_navbar, 
+    get_hero_section,
+    get_empty_state,
+    get_loading_indicator,
+    get_stat_card,
+    get_step_indicator
+)
 
 st.set_page_config(page_title="InterviewAce", layout="wide")
 
@@ -27,7 +36,8 @@ SESSION_DEFAULTS = {
     "login_success": None,
     "questions_generated": None,
     "qa_pairs": None,
-    "company_qa_pairs": None,  # for company dashboard Q/A
+    "company_qa_pairs": None,
+    "interview_analyzed": False,
 }
 
 def init_session():
@@ -171,30 +181,9 @@ def get_score_breakdown(analysis: str) -> dict:
 
     return categories
 
-# STYLES AND NAVBAR
-st.markdown("""
-    <style>
-    body {
-        background: linear-gradient(135deg, #0f2027 0%, #2c5364 35%, #6a3093 75%, #ffeb70 100%);
-        min-height: 100vh;
-    }
-    .navbar-flex {
-        width: 100vw; margin-left: calc(-50vw + 50%);
-        margin-right: calc(-50vw + 50%);
-        background: linear-gradient(90deg, #0f2027 0%, #6a3093 48%, #ffeb70 100%);
-        height: 76px; box-shadow: 0 12px 40px rgba(44,83,100,0.18);
-        border-bottom-left-radius: 30px; border-bottom-right-radius: 30px;
-        display: flex; align-items: center; justify-content: space-between;
-        font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-        font-size: 2.25rem; color: #fff; letter-spacing: 2px;
-        position: sticky; top: 0; z-index: 999; text-shadow: 0 2px 6px #0f2027;
-        padding: 0 2.5em;
-    }
-    </style>
-    <div class='navbar-flex'>
-        <span>InterviewAce</span>
-    </div>
-""", unsafe_allow_html=True)
+# Apply premium theme
+st.markdown(get_complete_theme(), unsafe_allow_html=True)
+st.markdown(get_glass_navbar(), unsafe_allow_html=True)
 
 # centered logo
 left, center, right = st.columns([2, 2, 1])
@@ -204,12 +193,10 @@ with center:
 # SCREENS
 def render_welcome():
     st.markdown(
-        """
-        <h1 style='text-align:center; margin-top: 1.5rem;'>Welcome to InterviewAce!</h1>
-        <h4 style='text-align:center; font-weight: 400; margin-bottom: 1.2rem;'>
-            Practice AI-powered mock interviews, get feedback, and build confidence for real interviews.
-        </h4>
-        """,
+        get_hero_section(
+            "Welcome to InterviewAce",
+            "Master your interview skills with AI-powered mock interviews, instant feedback, and comprehensive analytics"
+        ),
         unsafe_allow_html=True,
     )
 
@@ -409,6 +396,20 @@ def render_register():
 # DASHBOARD[USER]
 def render_user_dashboard():
     st.header("🎤 Audio-Only Mock Interview")
+    
+    # Step indicator
+    if st.session_state.get("questions_generated"):
+        if st.session_state.get("interview_analyzed"):
+            current_step = 2
+        else:
+            current_step = 1
+    else:
+        current_step = 0
+    
+    st.markdown(
+        get_step_indicator(["Setup", "Interview", "Feedback"], current_step),
+        unsafe_allow_html=True
+    )
 
     st.subheader("Camera Preview")
     cam = st.camera_input("Camera Preview", key="single_camera")
@@ -454,6 +455,13 @@ def render_user_dashboard():
 
     # Generate questions + expected answers
     if st.button("Start Interview", key="btn_start_interview"):
+        # Show loading indicator
+        loading_placeholder = st.empty()
+        loading_placeholder.markdown(
+            get_loading_indicator("Generating interview questions..."),
+            unsafe_allow_html=True
+        )
+        
         question_prompt = f"""
 You are an experienced interviewer for {career} candidates.
 
@@ -483,6 +491,8 @@ Now generate {num_q} such Q/A pairs.
 """
 
         raw, err = prompt(question_prompt, mode="questions")
+        loading_placeholder.empty()
+        
         if err:
             st.error(err)
             return
@@ -519,12 +529,23 @@ Now generate {num_q} such Q/A pairs.
 
         st.session_state["qa_pairs"] = qa_pairs
         st.session_state["questions_generated"] = [p["question"] for p in qa_pairs]
+        st.session_state["interview_analyzed"] = False
 
     # Render questions, audio, and build transcript lines
     qa_pairs = st.session_state.get("qa_pairs") or []
     transcript_lines = []
     audio_flags = []
 
+    if not qa_pairs:
+        st.markdown(
+            get_empty_state(
+                "🎯",
+                "No Interview Started",
+                "Configure your interview settings above and click 'Start Interview' to begin"
+            ),
+            unsafe_allow_html=True
+        )
+    
     if qa_pairs:
         for i, pair in enumerate(qa_pairs, 1):
             q = pair["question"]
@@ -559,6 +580,13 @@ Now generate {num_q} such Q/A pairs.
             if not any(audio_flags):
                 st.warning("Please record at least one audio answer.")
                 return
+
+            # Show loading
+            analysis_placeholder = st.empty()
+            analysis_placeholder.markdown(
+                get_loading_indicator("Analyzing your interview performance..."),
+                unsafe_allow_html=True
+            )
 
             # Build a more contextual analysis prompt using Qs + answer availability
             qa_summary_lines = []
@@ -602,6 +630,8 @@ Improvement tips:
 """
 
             analysis, err = prompt(analysis_prompt, mode="analysis")
+            analysis_placeholder.empty()
+            
             if err:
                 st.error(err)
                 return
@@ -610,8 +640,36 @@ Improvement tips:
             st.write(analysis)
 
             score = compute_score_from_analysis(analysis)
-            st.metric("Overall Score", f"{score}/100")
+            breakdown = get_score_breakdown(analysis)
+            
+            # Display as stat cards
+            st.markdown("<div class='stat-card-grid'>", unsafe_allow_html=True)
+            
+            st.markdown(
+                get_stat_card("🏆", "Overall Score", f"{score}/100", "overall"),
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                get_stat_card("💪", "Strengths", f"{breakdown['Strengths']}/100", "strengths"),
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                get_stat_card("⚠️", "Weaknesses", f"{breakdown['Weaknesses']}/100", "weaknesses"),
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                get_stat_card("💬", "Communication", f"{breakdown['Communication']}/100", "communication"),
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                get_stat_card("🔧", "Technical Depth", f"{breakdown['Technical Depth']}/100", "technical"),
+                unsafe_allow_html=True
+            )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
             st.progress(score / 100)
+            st.session_state["interview_analyzed"] = True
 
             # PDF content
             pdf_text_lines = []
@@ -663,6 +721,17 @@ import streamlit as st
 
 def render_company_dashboard():
     st.header("Company Question Generator")
+    
+    # Empty state if no questions generated yet
+    if not st.session_state.get("company_qa_pairs"):
+        st.markdown(
+            get_empty_state(
+                "💼",
+                "No Questions Generated",
+                "Configure your question settings below and click 'Generate Questions' to begin"
+            ),
+            unsafe_allow_html=True
+        )
 
     topic = st.selectbox(
         "Topic",
@@ -695,6 +764,13 @@ def render_company_dashboard():
     num_q_company = st.slider("Number of questions", 3, 15, 5)
 
     if st.button("Generate Questions"):
+
+        # Show loading
+        loading_placeholder = st.empty()
+        loading_placeholder.markdown(
+            get_loading_indicator("Generating questions with demo answers..."),
+            unsafe_allow_html=True
+        )
 
         # 🔥 STRONG PROMPT
         if q_type == "Coding Round":
@@ -747,6 +823,8 @@ Extra instructions: {extra_instr or "None"}
 """
 
         q_raw, err = prompt(prompt_text, mode="questions")
+
+        loading_placeholder.empty()
 
         if err:
             st.error(err)
