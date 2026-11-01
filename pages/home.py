@@ -279,28 +279,26 @@ html, body, [class*="css"] {
     color:#172033;
 }
 
-/* Light-blue typography for the Performance Review content. */
+/* Performance Review card — light blue highlight with black text */
 .st-key-analysis-review {
-    background:rgba(255,255,255,.96);
-    border:1px solid rgba(231,226,216,.9);
-    border-radius:24px;
-    padding:1rem 1.7rem;
-    box-shadow:0 12px 35px rgba(24,35,56,.07);
-    color:#5B9BD5 !important;
+    background: #EAF4FF !important;
+    border: 1px solid #C9E2F8 !important;
+    border-radius: 24px;
+    padding: 1rem 1.7rem;
+    box-shadow: 0 12px 35px rgba(24, 35, 56, 0.07);
 }
 
+/* Keep all Performance Review text black */
 .st-key-analysis-review,
 .st-key-analysis-review [data-testid="stMarkdownContainer"],
 .st-key-analysis-review [data-testid="stMarkdownContainer"] * {
-    color: #5B9BD5 !important;
-    -webkit-text-fill-color: #5B9BD5 !important;
+    color: #172033 !important;
+    -webkit-text-fill-color: #172033 !important;
     opacity: 1 !important;
 }
 
 .st-key-analysis-review p,
 .st-key-analysis-review li {
-    color: #5B9BD5 !important;
-    -webkit-text-fill-color: #5B9BD5 !important;
     font-size: 16px !important;
     line-height: 1.8 !important;
 }
@@ -311,8 +309,8 @@ html, body, [class*="css"] {
 .st-key-analysis-review h2,
 .st-key-analysis-review h3,
 .st-key-analysis-review h4 {
-    color: #3182CE !important;
-    -webkit-text-fill-color: #3182CE !important;
+    color: #172033 !important;
+    -webkit-text-fill-color: #172033 !important;
     font-weight: 700 !important;
 }
 
