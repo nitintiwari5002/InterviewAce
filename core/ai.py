@@ -117,8 +117,13 @@ def local_chat(
     if not choices:
         raise RuntimeError("Groq API returned an empty response.")
 
-    answer = (choices[0].get("message") or {}).get("content", "")
-    return remove_think_blocks(answer)
+    message = choices[0].get("message") or {}
+    answer = message.get("content", "") or ""
+
+    # Remove reasoning and accidental HTML tags.
+    answer = remove_think_blocks(answer)
+
+    return answer.strip()
 
 
 def _safe_chat(
