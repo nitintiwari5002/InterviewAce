@@ -3,6 +3,8 @@ import streamlit.components.v1 as components
 import base64
 import pickle
 import uuid
+import re
+import html
 from pathlib import Path
 from fpdf import FPDF
 from core.db import create_tables, register_user, login_user
@@ -619,10 +621,20 @@ Output format:
 - Follow it with "Expected answer:" and the model answer.
 - The expected answer may span multiple lines.
 - Do not include numbering or unrelated commentary.
+- Output plain text only; do not use HTML tags, Markdown tables, or wrapper tags.
+- Keep each question on one line immediately after the Q: label.
+- Do not place questions inside code blocks.
 
 Now generate exactly {num_q} question-and-expected-answer pairs.
 """
-            raw, err = prompt(question_prompt, mode="questions")
+            # Coding questions and model solutions can be lengthy, so request a
+            # larger completion to reduce the chance of truncated output.
+            token_limit = 4096 if interview_type == "Coding" else 2048
+            raw, err = prompt(
+                question_prompt,
+                mode="questions",
+                max_new_tokens=token_limit,
+            )
             if err:
                 st.error(err)
                 return
@@ -630,35 +642,81 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
                 st.error("Could not generate questions. Please try again.")
                 return
 
+            def clean_question_text(value: str) -> str:
+                """Remove accidental HTML wrappers from question text only."""
+                value = html.unescape(value or "")
+                value = re.sub(
+                    r"</?(?:div|p|span|strong|em|br|h[1-6])\b[^>]*>",
+                    " ", value, flags=re.IGNORECASE
+                )
+                return re.sub(r"\s+", " ", value).strip(" \t\r\n:-")
+
+            # Accept Q: and Question 1: labels, but do not treat numbered
+            # solution steps (1., 2.) as new questions.
+            question_start = re.compile(
+                r"^\s*(?:Q\s*[:.)-]|Question\s*\d*\s*[:.)-])\s*(.*?)\s*$",
+                re.IGNORECASE,
+            )
+            lines = raw.replace("\r\n", "\n").replace("\r", "\n").split("\n")
             qa_pairs = []
-            lines = [line.rstrip() for line in raw.splitlines() if line.strip()]
-            i = 0
-            while i < len(lines):
-                line = lines[i].strip()
-                if line.startswith("Q:"):
-                    question = line.split(":", 1)[1].strip()
-                    i += 1
-                    expected_lines = []
-                    if i < len(lines) and lines[i].strip().startswith("Expected answer:"):
-                        first_answer_line = lines[i].strip().split(":", 1)[1].strip()
-                        if first_answer_line:
-                            expected_lines.append(first_answer_line)
-                        i += 1
-                        while i < len(lines) and not lines[i].strip().startswith("Q:"):
-                            expected_lines.append(lines[i].rstrip())
-                            i += 1
+            current_question = None
+            expected_lines = []
+            collecting_answer = False
+
+            def save_current_pair():
+                if current_question:
                     qa_pairs.append({
-                        "question": question,
-                        "expected_answer": "\\n".join(expected_lines).strip(),
+                        "question": current_question,
+                        "expected_answer": "\n".join(expected_lines).strip(),
                         "audio_bytes": None,
                         "code_answer": "",
                     })
-                    continue
-                i += 1
 
-            qa_pairs = qa_pairs[:num_q]
+            for raw_line in lines:
+                line = raw_line.strip()
+                if not line:
+                    if collecting_answer:
+                        expected_lines.append("")
+                    continue
+
+                match = question_start.match(line)
+                if match:
+                    save_current_pair()
+                    current_question = clean_question_text(match.group(1))
+                    expected_lines = []
+                    collecting_answer = False
+                    continue
+
+                if current_question is None:
+                    continue
+
+                if not collecting_answer and re.match(r"^Expected\s+answer\s*:", line, re.IGNORECASE):
+                    collecting_answer = True
+                    answer_first_line = re.sub(
+                        r"^Expected\s+answer\s*:", "", line,
+                        count=1, flags=re.IGNORECASE
+                    ).strip()
+                    if answer_first_line:
+                        expected_lines.append(answer_first_line)
+                    continue
+
+                # Keep multiline explanations, sample I/O, and code intact.
+                collecting_answer = True
+                expected_lines.append(raw_line)
+
+            save_current_pair()
+            qa_pairs = [
+                pair for pair in qa_pairs
+                if pair["question"] and pair["expected_answer"].strip()
+            ][:num_q]
+
             if len(qa_pairs) < num_q:
-                st.error("The AI did not return enough valid questions. Please retry.")
+                st.error(
+                    f"The AI returned {len(qa_pairs)} complete question(s), but "
+                    f"{num_q} were requested. Please retry, or choose fewer questions."
+                )
+                with st.expander("View AI response for troubleshooting"):
+                    st.text(raw[:12000])
                 return
 
             st.session_state.qa_pairs = qa_pairs
@@ -704,11 +762,14 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
 
         st.progress((current_index + 1) / len(qa_pairs))
 
+        # Escape AI-generated text before embedding it in HTML so stray tags
+        # such as </div> cannot break the question card.
+        safe_question = html.escape(str(pair.get("question", "")))
         st.markdown(
             f"""<div class="card" style="margin-bottom:18px;">
                 <div class="eyebrow">Question {current_index + 1} of {len(qa_pairs)}</div>
                 <div style="font-size:1.35rem;font-weight:700;color:#182338;line-height:1.6;margin-top:12px;">
-                    {pair["question"]}
+                    {safe_question}
                 </div>
             </div>""",
             unsafe_allow_html=True,
