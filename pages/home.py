@@ -279,26 +279,28 @@ html, body, [class*="css"] {
     color:#172033;
 }
 
-/* Keep the AI-generated Strengths/Weaknesses analysis readable on the light card. */
+/* Light-blue typography for the Performance Review content. */
 .st-key-analysis-review {
     background:rgba(255,255,255,.96);
     border:1px solid rgba(231,226,216,.9);
     border-radius:24px;
     padding:1rem 1.7rem;
     box-shadow:0 12px 35px rgba(24,35,56,.07);
-    color:#172033 !important;
+    color:#5B9BD5 !important;
 }
 
 .st-key-analysis-review,
 .st-key-analysis-review [data-testid="stMarkdownContainer"],
 .st-key-analysis-review [data-testid="stMarkdownContainer"] * {
-    color: #172033 !important;
+    color: #5B9BD5 !important;
+    -webkit-text-fill-color: #5B9BD5 !important;
     opacity: 1 !important;
 }
 
 .st-key-analysis-review p,
 .st-key-analysis-review li {
-    color: #172033 !important;
+    color: #5B9BD5 !important;
+    -webkit-text-fill-color: #5B9BD5 !important;
     font-size: 16px !important;
     line-height: 1.8 !important;
 }
@@ -309,7 +311,8 @@ html, body, [class*="css"] {
 .st-key-analysis-review h2,
 .st-key-analysis-review h3,
 .st-key-analysis-review h4 {
-    color: #182338 !important;
+    color: #3182CE !important;
+    -webkit-text-fill-color: #3182CE !important;
     font-weight: 700 !important;
 }
 
@@ -946,7 +949,16 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
     if st.session_state.get("analysis"):
         st.write("")
         st.markdown('<div class="section-title">Performance Review</div>', unsafe_allow_html=True)
-
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.metric("Overall Score", f'{st.session_state.score}/100')
+            st.progress(st.session_state.score / 100)
+        with c2:
+            breakdown = get_score_breakdown(st.session_state.analysis)
+            bcols = st.columns(4)
+            for idx, (label, value) in enumerate(breakdown.items()):
+                with bcols[idx]:
+                    st.metric(label, value)
 
         with st.container(key="analysis-review"):
             st.markdown(st.session_state.analysis)
