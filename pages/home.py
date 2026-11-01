@@ -165,6 +165,37 @@ def create_interview_pdf(text: str) -> bytes:
         pdf.multi_cell(0, 7, line)
     return pdf.output(dest="S").encode("latin-1", "ignore")
 
+def build_interview_report_pdf():
+    """Build the current user's interview report, or return None before analysis exists."""
+    analysis = st.session_state.get("analysis")
+    if not isinstance(analysis, str) or not analysis.strip():
+        return None
+
+    completed_pairs = st.session_state.get("qa_pairs") or []
+    report_qa = []
+    for idx, item in enumerate(completed_pairs, 1):
+        report_qa.append(
+            f"Question {idx}: {item.get('question', '')}\n"
+            f"Expected answer / solution: {item.get('expected_answer', '')}\n"
+            f"Your code: {item.get('code_answer', '')}"
+        )
+
+    pdf_lines = [
+        "InterviewAce - Interview Report",
+        "=" * 42,
+        "",
+        f"Overall Score: {st.session_state.get('score', 0)}/100",
+        "",
+        analysis,
+        "",
+        "Questions and Expected Answers",
+        "=" * 42,
+        "",
+        "\n\n".join(report_qa),
+    ]
+    return create_interview_pdf("\n".join(pdf_lines))
+
+
 def compute_score_from_analysis(analysis: str) -> int:
     if not isinstance(analysis, str) or not analysis.strip():
         return 0
@@ -433,17 +464,41 @@ html,body,[class*="css"],.stApp{color:#172033!important}
 </style>
 """, unsafe_allow_html=True)
 
-header_left, header_login, header_register = st.columns([6, 1.5, 1.5], vertical_alignment="center")
+header_left, header_action_one, header_action_two = st.columns(
+    [6, 1.5, 1.5], vertical_alignment="center"
+)
 with header_left:
-    st.markdown('<div class="topbar"><div class="brand">Interview<span>Ace</span></div><div class="eyebrow">AI Powered Interview Prep Studio</div></div>', unsafe_allow_html=True)
-with header_login:
-    if st.button("Login", key="header_login", use_container_width=True):
-        st.session_state.navbar_state = "login"
-        st.rerun()
-with header_register:
-    if st.button("Register", key="header_register", use_container_width=True):
-        st.session_state.navbar_state = "register"
-        st.rerun()
+    st.markdown(
+        '<div class="topbar"><div class="brand">Interview<span>Ace</span></div>'
+        '<div class="eyebrow">AI Powered Interview Prep Studio</div></div>',
+        unsafe_allow_html=True,
+    )
+
+# Logged-in users see Download PDF and Logout instead of Login and Register.
+if st.session_state.get("username") and st.session_state.get("auth_token"):
+    report_pdf = build_interview_report_pdf() if st.session_state.get("analysis") else None
+    with header_action_one:
+        st.download_button(
+            "Download PDF",
+            data=report_pdf if report_pdf is not None else b"",
+            file_name="interview_report.pdf",
+            mime="application/pdf",
+            disabled=report_pdf is None,
+            use_container_width=True,
+            key="header_download_pdf",
+        )
+    with header_action_two:
+        if st.button("Logout", key="header_logout", use_container_width=True):
+            reset_to_home()
+else:
+    with header_action_one:
+        if st.button("Login", key="header_login", use_container_width=True):
+            st.session_state.navbar_state = "login"
+            st.rerun()
+    with header_action_two:
+        if st.button("Register", key="header_register", use_container_width=True):
+            st.session_state.navbar_state = "register"
+            st.rerun()
 
 # -----------------------------
 # WELCOME
@@ -1010,8 +1065,6 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
         pdf = create_interview_pdf("\n".join(pdf_lines))
         st.download_button("Download Interview Report (PDF)", pdf, "interview_report.pdf", "application/pdf")
 
-    if st.button("Logout", key="logout_bottom"):
-        reset_to_home()
 # ROUTER
 state = st.session_state.navbar_state
 if state is None:
@@ -1024,4 +1077,3 @@ elif state == "user_dashboard":
     render_user_dashboard()
 else:
     reset_to_home()
-    
