@@ -5,7 +5,7 @@ import streamlit as st
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_MODEL = "openai/gpt-oss-120b"
-DEFAULT_MAX_NEW_TOKENS = 512
+DEFAULT_MAX_NEW_TOKENS = 8192
 REQUEST_TIMEOUT_SECONDS = 120
 
 MODE_CONFIG = {
