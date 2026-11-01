@@ -946,16 +946,7 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
     if st.session_state.get("analysis"):
         st.write("")
         st.markdown('<div class="section-title">Performance Review</div>', unsafe_allow_html=True)
-        c1, c2 = st.columns([1, 2])
-        with c1:
-            st.metric("Overall Score", f'{st.session_state.score}/100')
-            st.progress(st.session_state.score / 100)
-        with c2:
-            breakdown = get_score_breakdown(st.session_state.analysis)
-            bcols = st.columns(4)
-            for idx, (label, value) in enumerate(breakdown.items()):
-                with bcols[idx]:
-                    st.metric(label, value)
+
 
         with st.container(key="analysis-review"):
             st.markdown(st.session_state.analysis)
