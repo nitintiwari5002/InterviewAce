@@ -319,6 +319,20 @@ html, body, [class*="css"] {
     padding-left: 24px !important;
     margin-bottom: 12px !important;
 }
+
+/* Remove dark inline-code highlight boxes inside the Performance Review */
+.st-key-analysis-review [data-testid="stMarkdownContainer"] p code,
+.st-key-analysis-review [data-testid="stMarkdownContainer"] li code {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #172033 !important;
+    -webkit-text-fill-color: #172033 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: inherit !important;
+}
 .section-title {
     font-family:"Playfair Display",serif;
     font-size:1.65rem;
@@ -1010,3 +1024,4 @@ elif state == "user_dashboard":
     render_user_dashboard()
 else:
     reset_to_home()
+    
