@@ -247,7 +247,7 @@ def render_visibility_video(video_path: Path):
         st.warning("Homepage video not found.")
         return
 
-    video_url = "/app/static/interviewace.mp4"
+    video_url = "https://interviewace.streamlit.app/app/static/interviewace.mp4"
 
     st.video(
         video_url,
