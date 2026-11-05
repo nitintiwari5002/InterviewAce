@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import base64
+import shutil
 import pickle
 import uuid
 import re
@@ -219,37 +220,70 @@ def build_interview_pdf_download():
 
 
 def render_visibility_video(video_path: Path):
-    """Autoplay while visible; pause when scrolled out of view."""
-    if not video_path.exists():
+    """Render the homepage video from a static URL instead of embedding its Base64 data."""
+    app_root = Path(__file__).resolve().parent.parent
+    static_dir = app_root / "static"
+    static_video_path = static_dir / "interviewace.mp4"
+
+    # Streamlit serves files from static/ when server.enableStaticServing is enabled.
+    # Copy only when the source changes, not on every Streamlit rerun.
+    if video_path.exists():
+        try:
+            static_dir.mkdir(parents=True, exist_ok=True)
+            if (
+                not static_video_path.exists()
+                or video_path.stat().st_mtime > static_video_path.stat().st_mtime
+                or video_path.stat().st_size != static_video_path.stat().st_size
+            ):
+                shutil.copy2(video_path, static_video_path)
+        except OSError as exc:
+            st.warning(f"Could not prepare the homepage video: {exc}")
+            return
+    elif not static_video_path.exists():
         st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
         return
 
-    video_b64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
-    video_html = '''    <div style="width:100%; border-radius:24px; overflow:hidden; box-shadow:0 22px 52px rgba(24,35,56,.18);">
-      <video id="interviewace-home-video" controls autoplay loop playsinline
-             preload="metadata" style="display:block;width:100%;height:auto;background:#101828;">
-        <source src="data:video/mp4;base64,__VIDEO_B64__" type="video/mp4">
+    video_url = "/app/static/interviewace.mp4"
+    video_html = '''
+    <div style="width:100%; aspect-ratio:16/9; border-radius:24px; overflow:hidden; box-shadow:0 22px 52px rgba(24,35,56,.18); background:#101828;">
+      <video id="interviewace-home-video" controls loop playsinline
+             preload="none" data-video-src="__VIDEO_URL__"
+             style="display:block;width:100%;height:100%;object-fit:cover;background:#101828;">
         Your browser does not support HTML video.
       </video>
     </div>
     <script>
-      const video = document.getElementById('interviewace-home-video');
-      if (video) {
+      (() => {
+        const video = document.getElementById('interviewace-home-video');
+        if (!video) return;
+
+        let sourceAttached = false;
+        const loadVideo = () => {
+          if (sourceAttached) return;
+          sourceAttached = true;
+          video.src = video.dataset.videoSrc;
+          video.load();
+        };
+
+        // Fetch the MP4 separately, only when the video enters its component viewport.
         const observer = new IntersectionObserver((entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {
+              loadVideo();
               const playAttempt = video.play();
               if (playAttempt && playAttempt.catch) playAttempt.catch(() => {});
-            } else {
+            } else if (sourceAttached) {
               video.pause();
             }
           });
         }, { threshold: [0, 0.25, 0.5] });
         observer.observe(video);
-      }
+
+        if (!('IntersectionObserver' in window)) loadVideo();
+      })();
     </script>
     '''
-    video_html = video_html.replace("__VIDEO_B64__", video_b64)
+    video_html = video_html.replace("__VIDEO_URL__", video_url)
     components.html(video_html, height=520, scrolling=False)
 
 # GLOBAL CLASSY THEME
