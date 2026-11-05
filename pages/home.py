@@ -514,7 +514,10 @@ def render_welcome():
 
     video_path = Path(__file__).resolve().parent.parent/"assets"/"interviewace.mp4"
     if video_path.exists():
-        st.video(str(video_path))
+        st.video(str(video_path),
+                autoplay = True,
+                muted = False,
+                loop = True)
     else:
         st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
 
