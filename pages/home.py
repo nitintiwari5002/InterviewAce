@@ -514,11 +514,11 @@ def render_welcome():
 
     video_path = Path(__file__).resolve().parent.parent / "assets" / "interviewace.mp4"
 
-if video_path.exists():
-    video_base64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
+    if video_path.exists():
+        video_base64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
 
-    video_html = f"""
-    <video id="homepage-video"
+        video_html = f"""
+        <video id="homepage-video"
            autoplay
            muted
            loop
@@ -526,38 +526,38 @@ if video_path.exists():
            preload="auto"
            style="width:100%; border-radius:24px;">
         <source src="data:video/mp4;base64,{video_base64}" type="video/mp4">
-    </video>
+        </video>
 
-    <script>
-    const video = document.getElementById("homepage-video");
+        <script>
+        const video = document.getElementById("homepage-video");
 
-    // Observe the iframe containing this video in the main Streamlit page.
-    try {{
-        const parentWindow = window.parent;
-        const frame = window.frameElement;
+        // Observe the iframe containing this video in the main Streamlit page.
+        try {{
+            const parentWindow = window.parent;
+            const frame = window.frameElement;
 
-        const observer = new parentWindow.IntersectionObserver((entries) => {{
-            entries.forEach(entry => {{
-                if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {{
-                    video.play().catch(() => {{}});
-                }} else {{
-                    video.pause();
-                }}
-            }});
-        }}, {{ threshold: [0, 0.25] }});
+            const observer = new parentWindow.IntersectionObserver((entries) => {{
+                entries.forEach(entry => {{
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {{
+                        video.play().catch(() => {{}});
+                    }} else {{
+                        video.pause();
+                    }}
+                }});
+            }}, {{ threshold: [0, 0.25] }});
 
-        observer.observe(frame);
-    }} catch (error) {{
+            observer.observe(frame);
+        }} catch (error) {{
         // Fallback: play the video normally if visibility tracking is unavailable.
         video.play().catch(() => {{}});
-    }}
-    </script>
+        }}
+        </script>
     """
 
     components.html(video_html, height=450, scrolling=False)
 
-else:
-    st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
+    else:
+        st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
 
     st.markdown("""
     <div class="feature-strip">
