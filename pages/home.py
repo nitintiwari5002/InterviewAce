@@ -30,6 +30,8 @@ SESSION_DEFAULTS = {
     "current_question": 0,
     "interview_started": False,
     "interview_config": None,
+    "coding_topics": [],
+    "coding_language": "Python",
 }
 
 def load_persistent_store():
@@ -664,7 +666,7 @@ def render_user_dashboard():
         saved_career = saved_config.get("career", career_options[0])
         saved_type = saved_config.get("interview_type", interview_type_options[0])
         saved_difficulty = saved_config.get("difficulty", difficulty_options[0])
-        saved_num_q = max(3, min(10, int(saved_config.get("num_q", 5))))
+        saved_num_q = max(3, min(15, int(saved_config.get("num_q", 5))))
 
         career = st.selectbox(
             "Career Field",
@@ -678,61 +680,133 @@ def render_user_dashboard():
             index=interview_type_options.index(saved_type) if saved_type in interview_type_options else 0,
             key="interview_type",
         )
-        difficulty = st.selectbox(
-            "Difficulty Level",
-            difficulty_options,
-            index=difficulty_options.index(saved_difficulty) if saved_difficulty in difficulty_options else 0,
-            key="difficulty_level",
-        )
+
         job_role = st.text_input(
             "Target role / position (optional)",
             value=saved_config.get("job_role", ""),
             placeholder="e.g. Backend Engineer",
             key="job_role",
         )
-        custom_focus = st.text_area(
-            "Custom focus (optional)",
-            value=saved_config.get("custom_focus", ""),
-            placeholder="e.g. system design, REST APIs, database transactions",
-            key="custom_focus",
-        )
-        num_q = st.slider(
-            "Number of questions", 3, 10, saved_num_q, key="num_questions"
-        )
+
+        coding_topics = []
+        coding_language = "Python"
+
+        if interview_type == "Coding":
+            st.markdown("#### Coding round preferences")
+            coding_topic_options = [
+                "Data Structures & Algorithms (DSA)",
+                "Database / SQL",
+                "Arrays & Strings",
+                "Object-Oriented Programming (OOP)",
+                "Operating Systems",
+                "Computer Networks",
+                "Web Development",
+                "Problem Solving & Logic",
+                "Other",
+            ]
+            saved_topics = saved_config.get("coding_topics") or ["Data Structures & Algorithms (DSA)"]
+            saved_topics = [topic for topic in saved_topics if topic in coding_topic_options]
+            coding_topics = st.multiselect(
+                "Topics to focus on (select one or more)",
+                coding_topic_options,
+                default=saved_topics,
+                key="coding_topics_selector",
+                help="Choose multiple topics to create a mixed coding interview.",
+            )
+
+            language_options = [
+                "Python", "Java", "C++", "C", "JavaScript", "C#", "Go", "SQL"
+            ]
+            saved_language = saved_config.get("coding_language", "Python")
+            coding_language = st.selectbox(
+                "Programming language",
+                language_options,
+                index=language_options.index(saved_language) if saved_language in language_options else 0,
+                key="coding_language_selector",
+            )
+            coding_difficulty_options = ["Easy", "Medium", "Hard"]
+            coding_difficulty = st.selectbox(
+                "Coding difficulty",
+                coding_difficulty_options,
+                index=coding_difficulty_options.index(saved_difficulty)
+                if saved_difficulty in coding_difficulty_options else 1,
+                key="coding_difficulty_selector",
+            )
+            difficulty = coding_difficulty
+            custom_focus = st.text_area(
+                "Additional coding focus (optional)",
+                value=saved_config.get("custom_focus", ""),
+                placeholder="e.g. sliding window, joins, recursion, dynamic programming",
+                key="custom_focus",
+            )
+            num_q = st.slider(
+                "Number of coding questions", 3, 15, saved_num_q, key="coding_num_questions"
+            )
+        else:
+            difficulty = st.selectbox(
+                "Difficulty Level",
+                difficulty_options,
+                index=difficulty_options.index(saved_difficulty) if saved_difficulty in difficulty_options else 0,
+                key="difficulty_level",
+            )
+            custom_focus = st.text_area(
+                "Custom focus (optional)",
+                value=saved_config.get("custom_focus", ""),
+                placeholder="e.g. system design, REST APIs, database transactions",
+                key="custom_focus",
+            )
+            num_q = st.slider(
+                "Number of questions", 3, 10, min(saved_num_q, 10), key="num_questions"
+            )
 
         if st.button("Start Interview", key="btn_start_interview", use_container_width=True):
+            if interview_type == "Coding" and not coding_topics:
+                st.error("Please select at least one coding topic.")
+                return
+
+            coding_instructions = ""
+            if interview_type == "Coding":
+                coding_instructions = f"""
+CODING ROUND REQUIREMENTS:
+- Selected topics: {", ".join(coding_topics)}
+- Required programming language: {coding_language}
+- Generate questions only from the selected topics, with a balanced mix when multiple topics are selected.
+- Every programming problem must be solvable in {coding_language}.
+- For SQL questions, provide a clear table schema and sample rows where appropriate.
+- Include a clear problem statement, input/output format, constraints, and at least one example when relevant.
+- The expected answer must contain an explanation, an efficient approach, time/space complexity where applicable, and a complete solution in {coding_language}.
+- Do not provide questions requiring a different programming language.
+"""
             question_prompt = f"""
-You are an experienced interviewer for {career} candidates.
+You are an experienced technical interviewer for {career} candidates.
 
 Generate exactly {num_q} {interview_type} interview questions.
 
 Target role/position: {job_role or "Not specified"}
 Difficulty: {difficulty}
 Additional focus: {custom_focus or "None"}
+{coding_instructions}
 
-If Basic, focus on fundamentals and simple direct questions.
-If Intermediate, focus on applied concepts and moderate depth.
-If Advanced, focus on complex scenario-based and deep questions.
-
-For a Coding round, ask practical programming problems appropriate to the career field
-and target role. Include constraints or sample input/output when useful. The expected
-answer should include a correct solution approach and code in a suitable language.
-For HR, Technical, and Behavioral rounds, provide a concise model answer.
+For non-coding rounds:
+- Basic means fundamentals and simple direct questions.
+- Intermediate means applied concepts and moderate depth.
+- Advanced means complex scenario-based questions and deeper technical discussion.
+- HR, Technical, and Behavioral questions should include a concise model answer.
 
 Output format:
 - Start every question with "Q:" on its own line.
 - Follow it with "Expected answer:" and the model answer.
-- The expected answer may span multiple lines.
+- The expected answer may span multiple lines and may contain code fences.
 - Do not include numbering or unrelated commentary.
 - Output plain text only; do not use HTML tags, Markdown tables, or wrapper tags.
 - Keep each question on one line immediately after the Q: label.
-- Do not place questions inside code blocks.
+- Do not place questions inside outer wrapper code blocks.
 
 Now generate exactly {num_q} question-and-expected-answer pairs.
 """
             # Coding questions and model solutions can be lengthy, so request a
             # larger completion to reduce the chance of truncated output.
-            token_limit = 4096 if interview_type == "Coding" else 2048
+            token_limit = 6144 if interview_type == "Coding" else 2048
             raw, err = prompt(
                 question_prompt,
                 mode="questions",
@@ -835,6 +909,8 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
                 "job_role": job_role,
                 "custom_focus": custom_focus,
                 "num_q": num_q,
+                "coding_topics": coding_topics if interview_type == "Coding" else [],
+                "coding_language": coding_language if interview_type == "Coding" else None,
             }
             persist_interview_state()
             st.success(f"{len(qa_pairs)} questions generated. Your interview has started.")
@@ -857,6 +933,13 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
     if qa_pairs and st.session_state.get("interview_started"):
         st.write("")
         st.markdown('<div class="section-title">Live Interview</div>', unsafe_allow_html=True)
+        active_config = st.session_state.get("interview_config") or {}
+        if active_config.get("interview_type") == "Coding":
+            st.caption(
+                f"Coding round · {active_config.get('coding_language', 'Language not set')} · "
+                f"{active_config.get('difficulty', 'Difficulty not set')} · "
+                f"{', '.join(active_config.get('coding_topics') or [])}"
+            )
 
         current_index = int(st.session_state.get("current_question", 0))
         current_index = max(0, min(current_index, len(qa_pairs) - 1))
@@ -882,13 +965,31 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
         is_coding_round = interview_config.get("interview_type") == "Coding"
 
         if is_coding_round:
-            st.caption("Write your solution in the code editor below. You can use any programming language.")
+            coding_language = interview_config.get("coding_language") or "Python"
+            coding_topics = interview_config.get("coding_topics") or []
+            st.caption(
+                f"Language: {coding_language}  |  Topics: {', '.join(coding_topics)}"
+            )
+            st.info(
+                "Write your solution in the selected language. Your code is saved as you work. "
+                "This version requests AI review but does not execute code in a runtime."
+            )
+            code_placeholders = {
+                "Python": "def solution(...):\\n    # Write your solution here\\n    pass",
+                "Java": "class Solution {\\n    // Write your solution here\\n}",
+                "C++": "#include <bits/stdc++.h>\\nusing namespace std;\\n\\n// Write your solution here",
+                "C": "#include <stdio.h>\\n\\nint main(void) {\\n    // Write your solution here\\n    return 0;\\n}",
+                "JavaScript": "function solution(...) {\\n    // Write your solution here\\n}",
+                "C#": "using System;\\n\\npublic class Solution {\\n    // Write your solution here\\n}",
+                "Go": "package main\\n\\nfunc solution() {\\n    // Write your solution here\\n}",
+                "SQL": "-- Write your SQL query here",
+            }
             code_answer = st.text_area(
-                "Your code",
+                f"Your {coding_language} solution",
                 value=pair.get("code_answer", ""),
-                height=280,
+                height=320,
                 key=f"code_answer_{current_index}",
-                placeholder="def solution(...):\\n    # Write your solution here\\n    pass",
+                placeholder=code_placeholders.get(coding_language, "// Write your solution here"),
             )
             if code_answer != pair.get("code_answer", ""):
                 pair["code_answer"] = code_answer
@@ -1000,8 +1101,18 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
                         Questions, model answers, and candidate answers:
                         {chr(10).join(qa_summary)}
 
-                        For a Coding round, evaluate submitted code for correctness, approach,
-                        edge cases, readability, and complexity. Do not claim the code was executed.
+                        For a Coding round:
+                        - Evaluate each submitted solution in the selected language:
+                          {(st.session_state.get("interview_config") or {}).get("coding_language", "Not specified")}
+                        - Selected topics:
+                          {", ".join((st.session_state.get("interview_config") or {}).get("coding_topics", [])) or "Not specified"}
+                        - Assess correctness by carefully reasoning through the code and the problem,
+                          including edge cases, algorithm/data-structure choice, readability,
+                          maintainability, and time/space complexity.
+                        - For SQL, assess query logic, joins, filtering, aggregation, and edge cases
+                          against the supplied schema where relevant.
+                        - Do not claim that code was executed or that test cases actually ran.
+                        - Clearly distinguish a likely logical issue from a verified runtime failure.
                         For non-coding rounds, audio answers are recorded but transcripts are not
                         available, so do not invent what the candidate said. Evaluate honestly
                         using the expected answers, question difficulty, interview context, and
