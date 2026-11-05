@@ -165,37 +165,6 @@ def create_interview_pdf(text: str) -> bytes:
         pdf.multi_cell(0, 7, line)
     return pdf.output(dest="S").encode("latin-1", "ignore")
 
-def build_interview_report_pdf():
-    """Build the current user's interview report, or return None before analysis exists."""
-    analysis = st.session_state.get("analysis")
-    if not isinstance(analysis, str) or not analysis.strip():
-        return None
-
-    completed_pairs = st.session_state.get("qa_pairs") or []
-    report_qa = []
-    for idx, item in enumerate(completed_pairs, 1):
-        report_qa.append(
-            f"Question {idx}: {item.get('question', '')}\n"
-            f"Expected answer / solution: {item.get('expected_answer', '')}\n"
-            f"Your code: {item.get('code_answer', '')}"
-        )
-
-    pdf_lines = [
-        "InterviewAce - Interview Report",
-        "=" * 42,
-        "",
-        f"Overall Score: {st.session_state.get('score', 0)}/100",
-        "",
-        analysis,
-        "",
-        "Questions and Expected Answers",
-        "=" * 42,
-        "",
-        "\n\n".join(report_qa),
-    ]
-    return create_interview_pdf("\n".join(pdf_lines))
-
-
 def compute_score_from_analysis(analysis: str) -> int:
     if not isinstance(analysis, str) or not analysis.strip():
         return 0
@@ -215,6 +184,72 @@ def get_score_breakdown(analysis: str) -> dict:
         "Communication": 65 if any(x in text for x in ["communication", "clarity", "clear"]) else 40,
         "Technical Depth": 65 if any(x in text for x in ["technical", "concepts", "knowledge"]) else 40,
     }
+def build_interview_pdf_download():
+    """Build the current user's interview report, or return None if unavailable."""
+    analysis = st.session_state.get("analysis")
+    if not isinstance(analysis, str) or not analysis.strip():
+        return None
+
+    completed_pairs = st.session_state.get("qa_pairs") or []
+    report_qa = []
+    for idx, item in enumerate(completed_pairs, 1):
+        report_qa.append(
+            f"Question {idx}: {item.get('question', '')}\n"
+            f"Expected answer / solution: {item.get('expected_answer', '')}\n"
+            f"Your code: {item.get('code_answer', '')}"
+        )
+
+    score = st.session_state.get("score")
+    pdf_lines = [
+        "InterviewAce - Interview Report",
+        "=" * 42,
+        "",
+        f"Overall Score: {score if score is not None else 0}/100",
+        "",
+        analysis,
+        "",
+        "Questions and Expected Answers",
+        "=" * 42,
+        "",
+        "\n\n".join(report_qa),
+    ]
+    return create_interview_pdf("\n".join(pdf_lines))
+
+
+def render_visibility_video(video_path: Path):
+    """Autoplay muted while visible; pause when scrolled out of view."""
+    if not video_path.exists():
+        st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
+        return
+
+    video_b64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
+    video_html = '''    <div style="width:100%; border-radius:24px; overflow:hidden; box-shadow:0 22px 52px rgba(24,35,56,.18);">
+      <video id="interviewace-home-video" controls autoplay muted loop playsinline
+             preload="metadata" style="display:block;width:100%;height:auto;background:#101828;">
+        <source src="data:video/mp4;base64,__VIDEO_B64__" type="video/mp4">
+        Your browser does not support HTML video.
+      </video>
+    </div>
+    <script>
+      const video = document.getElementById('interviewace-home-video');
+      if (video) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {
+              const playAttempt = video.play();
+              if (playAttempt && playAttempt.catch) playAttempt.catch(() => {});
+            } else {
+              video.pause();
+            }
+          });
+        }, { threshold: [0, 0.25, 0.5] });
+        observer.observe(video);
+      }
+    </script>
+    '''
+    video_html = video_html.replace("__VIDEO_B64__", video_b64)
+    components.html(video_html, height=520, scrolling=False)
+
 # GLOBAL CLASSY THEME
 st.markdown("""
 <style>
@@ -345,24 +380,25 @@ html, body, [class*="css"] {
     font-weight: 700 !important;
 }
 
+.st-key-analysis-review code {
+    color: #172033 !important;
+    -webkit-text-fill-color: #172033 !important;
+    background: rgba(255, 255, 255, 0.62) !important;
+    border: 1px solid rgba(23, 32, 51, 0.10) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+.st-key-analysis-review pre,
+.st-key-analysis-review pre code {
+    background: rgba(255, 255, 255, 0.72) !important;
+    color: #172033 !important;
+    -webkit-text-fill-color: #172033 !important;
+}
+
 .st-key-analysis-review ul,
 .st-key-analysis-review ol {
     padding-left: 24px !important;
     margin-bottom: 12px !important;
-}
-
-/* Remove dark inline-code highlight boxes inside the Performance Review */
-.st-key-analysis-review [data-testid="stMarkdownContainer"] p code,
-.st-key-analysis-review [data-testid="stMarkdownContainer"] li code {
-    background: transparent !important;
-    background-color: transparent !important;
-    color: #172033 !important;
-    -webkit-text-fill-color: #172033 !important;
-    border: 0 !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-    font-size: inherit !important;
 }
 .section-title {
     font-family:"Playfair Display",serif;
@@ -464,38 +500,38 @@ html,body,[class*="css"],.stApp{color:#172033!important}
 </style>
 """, unsafe_allow_html=True)
 
-header_left, header_action_one, header_action_two = st.columns(
-    [6, 1.5, 1.5], vertical_alignment="center"
-)
-with header_left:
-    st.markdown(
-        '<div class="topbar"><div class="brand">Interview<span>Ace</span></div>'
-        '<div class="eyebrow">AI Powered Interview Prep Studio</div></div>',
-        unsafe_allow_html=True,
-    )
-
-# Logged-in users see Download PDF and Logout instead of Login and Register.
-if st.session_state.get("username") and st.session_state.get("auth_token"):
-    report_pdf = build_interview_report_pdf() if st.session_state.get("analysis") else None
-    with header_action_one:
-        st.download_button(
-            "Download PDF",
-            data=report_pdf if report_pdf is not None else b"",
-            file_name="interview_report.pdf",
-            mime="application/pdf",
-            disabled=report_pdf is None,
-            use_container_width=True,
-            key="header_download_pdf",
-        )
-    with header_action_two:
+logged_in = bool(st.session_state.get("auth_token") and st.session_state.get("username"))
+if logged_in:
+    has_report = bool(st.session_state.get("analysis"))
+    if has_report:
+        header_left, header_pdf, header_logout = st.columns([6, 2, 1.5], vertical_alignment="center")
+    else:
+        header_left, header_logout = st.columns([7.5, 1.5], vertical_alignment="center")
+    with header_left:
+        st.markdown('<div class="topbar"><div class="brand">Interview<span>Ace</span></div><div class="eyebrow">AI Powered Interview Prep Studio</div></div>', unsafe_allow_html=True)
+    if has_report:
+        with header_pdf:
+            report_pdf = build_interview_pdf_download()
+            st.download_button(
+                "Download PDF",
+                report_pdf,
+                "interview_report.pdf",
+                "application/pdf",
+                key="header_download_pdf",
+                use_container_width=True,
+            )
+    with header_logout:
         if st.button("Logout", key="header_logout", use_container_width=True):
             reset_to_home()
 else:
-    with header_action_one:
+    header_left, header_login, header_register = st.columns([6, 1.5, 1.5], vertical_alignment="center")
+    with header_left:
+        st.markdown('<div class="topbar"><div class="brand">Interview<span>Ace</span></div><div class="eyebrow">AI Powered Interview Prep Studio</div></div>', unsafe_allow_html=True)
+    with header_login:
         if st.button("Login", key="header_login", use_container_width=True):
             st.session_state.navbar_state = "login"
             st.rerun()
-    with header_action_two:
+    with header_register:
         if st.button("Register", key="header_register", use_container_width=True):
             st.session_state.navbar_state = "register"
             st.rerun()
@@ -513,51 +549,7 @@ def render_welcome():
     """, unsafe_allow_html=True)
 
     video_path = Path(__file__).resolve().parent.parent / "assets" / "interviewace.mp4"
-
-    if video_path.exists():
-        video_base64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
-
-        video_html = f"""
-        <video id="homepage-video"
-           autoplay
-           muted
-           loop
-           playsinline
-           preload="auto"
-           style="width:100%; border-radius:24px;">
-        <source src="data:video/mp4;base64,{video_base64}" type="video/mp4">
-        </video>
-
-        <script>
-        const video = document.getElementById("homepage-video");
-
-        // Observe the iframe containing this video in the main Streamlit page.
-        try {{
-            const parentWindow = window.parent;
-            const frame = window.frameElement;
-
-            const observer = new parentWindow.IntersectionObserver((entries) => {{
-                entries.forEach(entry => {{
-                    if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {{
-                        video.play().catch(() => {{}});
-                    }} else {{
-                        video.pause();
-                    }}
-                }});
-            }}, {{ threshold: [0, 0.25] }});
-
-            observer.observe(frame);
-        }} catch (error) {{
-        // Fallback: play the video normally if visibility tracking is unavailable.
-        video.play().catch(() => {{}});
-        }}
-        </script>
-    """
-
-    components.html(video_html, height=450, scrolling=False)
-
-    else:
-        st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
+    render_visibility_video(video_path)
 
     st.markdown("""
     <div class="feature-strip">
@@ -1082,29 +1074,6 @@ Now generate exactly {num_q} question-and-expected-answer pairs.
                         st.markdown("**Your submitted code**")
                         st.code(item.get("code_answer", "") or "No code submitted.")
 
-        report_qa = []
-        for idx, item in enumerate(completed_pairs, 1):
-            report_qa.append(
-                f"Question {idx}: {item.get('question', '')}\\n"
-                f"Expected answer / solution: {item.get('expected_answer', '')}\\n"
-                f"Your code: {item.get('code_answer', '')}"
-            )
-
-        pdf_lines = [
-            "InterviewAce - Interview Report",
-            "=" * 42,
-            "",
-            f"Overall Score: {st.session_state.score}/100",
-            "",
-            st.session_state.analysis,
-            "",
-            "Questions and Expected Answers",
-            "=" * 42,
-            "",
-            "\\n\\n".join(report_qa),
-        ]
-        pdf = create_interview_pdf("\n".join(pdf_lines))
-        st.download_button("Download Interview Report (PDF)", pdf, "interview_report.pdf", "application/pdf")
 
 # ROUTER
 state = st.session_state.navbar_state
