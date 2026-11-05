@@ -220,8 +220,10 @@ def build_interview_pdf_download():
 
 
 
+
 def render_visibility_video(video_path: Path):
-    """Serve the homepage video separately and attempt autoplay with sound."""
+    """Render the homepage video using Streamlit's native video player."""
+
     app_root = Path(__file__).resolve().parent.parent
     static_dir = app_root / "static"
     static_video_path = static_dir / "interviewace.mp4"
@@ -238,7 +240,7 @@ def render_visibility_video(video_path: Path):
                 shutil.copy2(video_path, static_video_path)
 
         except OSError as exc:
-            st.warning(f"Could not prepare the homepage video: {exc}")
+            st.warning(f"Could not prepare homepage video: {exc}")
             return
 
     elif not static_video_path.exists():
@@ -247,121 +249,11 @@ def render_visibility_video(video_path: Path):
 
     video_url = "/app/static/interviewace.mp4"
 
-    video_html = '''
-    <div style="
-        position:relative;
-        width:100%;
-        aspect-ratio:16/9;
-        border-radius:24px;
-        overflow:hidden;
-        box-shadow:0 22px 52px rgba(24,35,56,.18);
-        background:#101828;
-    ">
-        <video
-            id="interviewace-home-video"
-            autoplay
-            controls
-            loop
-            playsinline
-            preload="auto"
-            style="
-                display:block;
-                width:100%;
-                height:100%;
-                object-fit:cover;
-                background:#101828;
-            "
-        >
-            <source src="__VIDEO_URL__" type="video/mp4">
-            Your browser does not support HTML video.
-        </video>
-
-        <button
-            id="enable-video-sound"
-            style="
-                display:none;
-                position:absolute;
-                left:50%;
-                top:50%;
-                transform:translate(-50%,-50%);
-                padding:15px 24px;
-                border:1px solid #ead8ad;
-                border-radius:14px;
-                background:#182338;
-                color:white;
-                font-size:16px;
-                font-weight:700;
-                cursor:pointer;
-                box-shadow:0 8px 25px rgba(0,0,0,.3);
-            "
-        >
-            🔊 Tap to play with sound
-        </button>
-    </div>
-
-    <script>
-    (() => {
-        const video = document.getElementById(
-            'interviewace-home-video'
-        );
-
-        const soundButton = document.getElementById(
-            'enable-video-sound'
-        );
-
-        if (!video || !soundButton) return;
-
-        // Attempt autoplay with sound.
-        video.muted = false;
-        video.defaultMuted = false;
-        video.volume = 1;
-
-        function attemptAutoplay() {
-            const result = video.play();
-
-            if (result && result.catch) {
-                result.catch(() => {
-                    // Browser may block autoplay with sound.
-                    soundButton.style.display = 'block';
-                });
-            }
-        }
-
-        video.addEventListener('canplay', attemptAutoplay, {
-            once: true
-        });
-
-        video.addEventListener('playing', () => {
-            soundButton.style.display = 'none';
-        });
-
-        video.addEventListener('error', () => {
-            soundButton.style.display = 'block';
-        });
-
-        soundButton.addEventListener('click', () => {
-            video.muted = false;
-            video.volume = 1;
-
-            video.play().then(() => {
-                soundButton.style.display = 'none';
-            }).catch(() => {
-                soundButton.textContent = 'Unable to play video';
-            });
-        });
-
-        // Also attempt playback immediately.
-        attemptAutoplay();
-    })();
-    </script>
-    '''
-
-    video_html = video_html.replace("__VIDEO_URL__", video_url)
-
-    components.html(
-        video_html,
-        height=520,
-        scrolling=False
+    st.video(
+        video_url,
+        autoplay=False,
+        loop=True,
+        muted=False
     )
 
 # GLOBAL CLASSY THEME
