@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import base64
-import shutil
 import pickle
 import uuid
 import re
@@ -219,42 +218,39 @@ def build_interview_pdf_download():
     return create_interview_pdf("\n".join(pdf_lines))
 
 
-
-
 def render_visibility_video(video_path: Path):
-    """Render the homepage video using Streamlit's native video player."""
-
-    app_root = Path(__file__).resolve().parent.parent
-    static_dir = app_root / "static"
-    static_video_path = static_dir / "interviewace.mp4"
-
-    if video_path.exists():
-        try:
-            static_dir.mkdir(parents=True, exist_ok=True)
-
-            if (
-                not static_video_path.exists()
-                or video_path.stat().st_mtime > static_video_path.stat().st_mtime
-                or video_path.stat().st_size != static_video_path.stat().st_size
-            ):
-                shutil.copy2(video_path, static_video_path)
-
-        except OSError as exc:
-            st.warning(f"Could not prepare homepage video: {exc}")
-            return
-
-    elif not static_video_path.exists():
-        st.warning("Homepage video not found.")
+    """Autoplay muted while visible; pause when scrolled out of view."""
+    if not video_path.exists():
+        st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
         return
 
-    video_url = "https://interviewace.streamlit.app/app/static/interviewace.mp4"
-
-    st.video(
-        video_url,
-        autoplay=False,
-        loop=True,
-        muted=False
-    )
+    video_b64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
+    video_html = '''    <div style="width:100%; border-radius:24px; overflow:hidden; box-shadow:0 22px 52px rgba(24,35,56,.18);">
+      <video id="interviewace-home-video" controls autoplay loop playsinline
+             preload="metadata" style="display:block;width:100%;height:auto;background:#101828;">
+        <source src="data:video/mp4;base64,__VIDEO_B64__" type="video/mp4">
+        Your browser does not support HTML video.
+      </video>
+    </div>
+    <script>
+      const video = document.getElementById('interviewace-home-video');
+      if (video) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.25) {
+              const playAttempt = video.play();
+              if (playAttempt && playAttempt.catch) playAttempt.catch(() => {});
+            } else {
+              video.pause();
+            }
+          });
+        }, { threshold: [0, 0.25, 0.5] });
+        observer.observe(video);
+      }
+    </script>
+    '''
+    video_html = video_html.replace("__VIDEO_B64__", video_b64)
+    components.html(video_html, height=520, scrolling=False)
 
 # GLOBAL CLASSY THEME
 st.markdown("""
