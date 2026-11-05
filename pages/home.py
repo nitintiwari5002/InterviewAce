@@ -224,7 +224,7 @@ def render_visibility_video(video_path: Path):
 
     video_b64 = base64.b64encode(video_path.read_bytes()).decode("utf-8")
     video_html = '''    <div style="width:100%; border-radius:24px; overflow:hidden; box-shadow:0 22px 52px rgba(24,35,56,.18);">
-      <video id="interviewace-home-video" controls autoplay muted loop playsinline
+      <video id="interviewace-home-video" controls autoplay loop playsinline
              preload="metadata" style="display:block;width:100%;height:auto;background:#101828;">
         <source src="data:video/mp4;base64,__VIDEO_B64__" type="video/mp4">
         Your browser does not support HTML video.
