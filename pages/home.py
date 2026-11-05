@@ -219,7 +219,7 @@ def build_interview_pdf_download():
 
 
 def render_visibility_video(video_path: Path):
-    """Autoplay muted while visible; pause when scrolled out of view."""
+    """Autoplay while visible; pause when scrolled out of view."""
     if not video_path.exists():
         st.warning("Homepage video not found. Please place interviewace.mp4 inside the assets folder.")
         return
